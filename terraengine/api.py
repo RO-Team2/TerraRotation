@@ -1,4 +1,4 @@
-"""Stable, frontend-friendly HTTP interface for the hackathon MVP."""
+
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware

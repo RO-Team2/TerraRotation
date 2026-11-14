@@ -36,7 +36,6 @@ def can_follow(sequence, crop_id):
     return True
 
 def simulate_rotation(rotation, soil, climate, history=()):
-    """Transparent dimensionless soil-health and N-balance proxies; NOT kg N/ha or SOC forecasts."""
     nitrogen = 0.5
     organic = 0.5
     timeline = []
