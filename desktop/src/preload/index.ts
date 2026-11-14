@@ -9,7 +9,7 @@ function presentSatelliteError(error: unknown): Error {
       '2. W terminalu backendu (WSL), w katalogu repozytorium, ustaw:',
       '   export COPERNICUS_CLIENT_ID="TWÓJ_CLIENT_ID"',
       '   export COPERNICUS_CLIENT_SECRET="TWÓJ_CLIENT_SECRET"',
-      '3. Uruchom ponownie uvicorn w tym samym terminalu. Nie wklejaj tych sekretów do kodu ani do repozytorium.',
+      '3. Uruchom ponownie uvicorn w tym samym terminalu. Nie wklejaj tych ID do kodu ani do repozytorium.',
       'Jeśli nie masz klienta OAuth, korzystaj z płodozmianu NASA POWER/SoilGrids; przycisk analizy Sentinel-2 wymaga tych danych.',
     ].join('\n'));
   }
