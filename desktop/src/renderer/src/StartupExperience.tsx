@@ -59,7 +59,7 @@ export default function StartupExperience({ children }: { children: ReactNode })
       <div className="welcome-orbit welcome-orbit-one" />
       <div className="welcome-orbit welcome-orbit-two" />
       <div className="welcome-content">
-        <img className="welcome-logo" src="/terrarotation-lockup.svg" alt="TerraRotation" />
+        <img className="welcome-logo" src="/terrarotation.svg" alt="TerraRotation" />
         <div className="welcome-rule"><span /></div>
         <p>Inteligentne decyzje dla zdrowej gleby</p>
         <div className="welcome-loading"><span /><span /><span /></div>
