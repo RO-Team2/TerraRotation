@@ -81,8 +81,8 @@ export default function StartupExperience({ children }: { children: ReactNode })
         <div className="setup-note"><Check size={15} /> Ustawienia są proste do zmiany i nie blokują rozpoczęcia pracy.</div>
         <footer className="setup-actions">
           <button className="setup-skip" onClick={finishTutorial}>Pomiń samouczek</button>
-          {step > 0 && <button className="setup-back" onClick={() => setStep((current) => current - 1)}><ChevronLeft size={16} /> Wstecz</button>}
-          <button className="setup-next" onClick={() => step === steps.length - 1 ? finishTutorial() : setStep((current) => current + 1)}>
+          {step > 0 && <button className="setup-back" onClick={() => setStep((current) => current-1)}><ChevronLeft size={16} /> Wstecz</button>}
+          <button className="setup-next" onClick={() => step === steps.length-1 ? finishTutorial() : setStep((current) => current+1)}>
             {steps[step].action}<ArrowRight size={16} />
           </button>
         </footer>
