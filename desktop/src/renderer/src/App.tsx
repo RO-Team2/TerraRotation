@@ -5,13 +5,69 @@ const scenarioLabels: Record<string, string> = {
   balanced: 'Zrównoważony', soil: 'Zdrowie gleby', resilience: 'Odporność', profit: 'Opłacalność',
 };
 
+const cropLabels: Record<string, string> = {
+  wheat: 'Pszenica',
+  rye: 'Żyto',
+  barley: 'Jęczmień',
+  oats: 'Owies',
+  oat: 'Owies',
+  maize: 'Kukurydza',
+  corn: 'Kukurydza',
+  potato: 'Ziemniak',
+  rapeseed: 'Rzepak',
+  pea: 'Groch',
+  soybean: 'Soja',
+  soy: 'Soja',
+  sunflower: 'Słonecznik',
+  sugar_beet: 'Burak cukrowy',
+  sugarbeet: 'Burak cukrowy',
+  beet: 'Burak',
+  triticale: 'Pszenżyto',
+  buckwheat: 'Gryka',
+  lupin: 'Łubin',
+  alfalfa: 'Lucerna',
+  clover: 'Koniczyna',
+  faba_bean: 'Bobik',
+  field_bean: 'Bobik',
+};
+
+const metricLabels: Record<string, string> = {
+  fit: 'Dopasowanie',
+  soil: 'Gleba',
+  profit: 'Opłacalność',
+  resilience: 'Odporność',
+  diversity: 'Różnorodność',
+};
+
 function displayName(crops: Crop[], id: string): string {
+  const key = id.toLowerCase();
   const crop = crops.find((item) => item.id === id);
-  return crop?.name ?? id.replaceAll('_', ' ');
+  return cropLabels[key] ?? crop?.name ?? id.replaceAll('_', ' ');
 }
 
-function value(value: unknown, suffix = ''): string {
-  return typeof value === 'number' ? `${value.toFixed(1)}${suffix}` : '—';
+function translateMessage(message: string): string {
+  if (/^Heuristic prototype; verify with local agronomist and field sampling\.?$/i.test(message.trim())) {
+    return 'Prototyp oparty na modelu heurystycznym. Wyniki należy zweryfikować z agronomem i badaniami gleby.';
+  }
+  return message;
+}
+
+function value(input: unknown, suffix = ''): string {
+  return typeof input === 'number' && Number.isFinite(input)
+    ? `${input.toLocaleString('pl-PL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${suffix}`
+    : '—';
+}
+
+function points(score: number): string {
+  return (score * 100).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function scoreDifference(best: number, other: number): string {
+  return ((best - other) * 100).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function yearLabel(years: number): string {
+  return `${years} ${years === 1 ? 'rok' : years >= 2 && years <= 4 ? 'lata' : 'lat'}`;
 }
 
 export default function App() {
@@ -21,7 +77,7 @@ export default function App() {
   const [longitude, setLongitude] = useState('16.70');
   const [years, setYears] = useState(4);
   const [scenario, setScenario] = useState('balanced');
-  const [mode, setMode] = useState<'demo' | 'live'>('demo');
+  const [mode, setMode] = useState<'demo' | 'live'>('live');
   const [climateYears, setClimateYears] = useState(10);
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,7 +131,7 @@ export default function App() {
       </aside>
 
       <main className="main-content">
-        <header className="topbar"><div><span className="eyebrow">NARZĘDZIE DECYZYJNE</span><h1>Planowanie płodozmianu</h1></div><div className="top-badge">WERSJA DEMO</div></header>
+        <header className="topbar"><div><span className="eyebrow">NARZĘDZIE DECYZYJNE</span><h1>Planowanie płodozmianu</h1></div><div className="top-badge">WERSJA 1.0 · LIVE</div></header>
         <section className="intro"><div><h2>Lepsze decyzje zaczynają się od danych.</h2><p>Sprawdź warunki pola i porównaj możliwe rotacje upraw dla wybranej lokalizacji.</p></div><div className="intro-icon">✳</div></section>
 
         <div className="workspace">
@@ -93,10 +149,10 @@ export default function App() {
                 </select>
               </label>
               <div className="coordinate-grid">
-                <label className="control-label">Lata planu<select value={years} onChange={(e) => setYears(Number(e.target.value))}>{[2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} lata</option>)}</select></label>
+                <label className="control-label">Lata planu<select value={years} onChange={(e) => setYears(Number(e.target.value))}>{[2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{yearLabel(n)}</option>)}</select></label>
                 <label className="control-label">Historia klimatu<select value={climateYears} onChange={(e) => setClimateYears(Number(e.target.value))}>{[5, 10, 15, 20].map((n) => <option key={n} value={n}>{n} lat</option>)}</select></label>
               </div>
-              <div className="mode-select"><div><strong>Źródło danych</strong><small>{mode === 'demo' ? 'Przykładowe dane — najlepsze do prezentacji UI' : 'Pobieranie aktualnie dostępnych danych zewnętrznych'}</small></div><select aria-label="Tryb danych" value={mode} onChange={(e) => setMode(e.target.value as 'demo' | 'live')}><option value="demo">Demo</option><option value="live">Live</option></select></div>
+              <div className="mode-select"><div><strong>Źródło danych</strong><small>{mode === 'demo' ? 'Przykładowe dane — najlepsze do prezentacji UI' : 'Pobieranie aktualnie dostępnych danych zewnętrznych'}</small></div><select aria-label="Tryb danych" value={mode} onChange={(e) => setMode(e.target.value as 'demo' | 'live')}><option value="demo">DEMO</option><option value="live">LIVE</option></select></div>
               <button className="primary-button" type="submit" disabled={loading || apiOnline === false}>
                 {loading ? <><span className="spinner" /> Analizuję dane…</> : <>Utwórz plan <span>→</span></>}
               </button>
@@ -105,8 +161,8 @@ export default function App() {
           </section>
 
           <section className="results-column">
-            {!result && !loading && !error && <div className="empty-state"><div className="empty-icon">⌁</div><h3>Twój plan pojawi się tutaj</h3><p>Uzupełnij dane pola i uruchom analizę. Na początek wybierz tryb demo.</p></div>}
-            {loading && <div className="empty-state"><div className="spinner large"/><h3>Analizuję warunki pola</h3><p>Pierwsze pobranie danych live może chwilę potrwać.</p></div>}
+            {!result && !loading && !error && <div className="empty-state"><div className="empty-icon">⌁</div><h3>Twój plan pojawi się tutaj</h3><p>Uzupełnij dane pola i uruchom analizę. Domyślnie korzystamy z rzeczywistych danych klimatycznych i glebowych.</p></div>}
+            {loading && <div className="empty-state"><div className="spinner large"/><h3>Analizuję warunki pola</h3><p>Pobieranie danych z NASA POWER i SoilGrids może chwilę potrwać.</p></div>}
             {error && <div className="alert error"><strong>Nie udało się wygenerować planu</strong><p>{error}</p><button className="text-button" onClick={() => setError('')}>Zamknij</button></div>}
             {result && <>
               <div className="result-heading"><div><span className="eyebrow">02 · WYNIKI ANALIZY</span><h2>Warunki i rekomendacje</h2></div><span className={`result-status ${result.engine.status === 'ok' ? 'success' : ''}`}>{result.engine.status === 'ok' ? 'Analiza gotowa' : result.engine.status}</span></div>
@@ -115,20 +171,21 @@ export default function App() {
                 <article className="stat-card"><span>ROCZNE OPADY</span><strong>{value(result.climate?.annual_rain_mm, ' mm')}</strong><small>średnia suma opadów</small></article>
                 <article className="stat-card"><span>pH GLEBY</span><strong>{value(result.soil?.layers?.[0]?.ph)}</strong><small>{String(result.soil?.layers?.[0]?.depth ?? 'profil gleby')}</small></article>
               </div>
-              {warnings.length > 0 && <div className="alert warning"><strong>Informacje o danych</strong><ul>{warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></div>}
-              {result.engine.status !== 'ok' && <div className="alert warning">Nie wygenerowano rekomendacji. Sprawdź ostrzeżenia lub spróbuj trybu demo.</div>}
+              {warnings.length > 0 && <div className="alert warning"><strong>Informacje o danych</strong><ul>{warnings.map((warning, index) => <li key={`${warning}-${index}`}>{translateMessage(warning)}</li>)}</ul></div>}
+              {result.engine.status !== 'ok' && <div className="alert warning">Nie wygenerowano rekomendacji. Sprawdź informacje o danych i dostępność źródeł zewnętrznych.</div>}
               {first && <article className="recommendation-card">
-                <div className="recommendation-top"><div><span className="eyebrow">NAJLEPSZE DOPASOWANIE</span><h3>Rekomendowana rotacja</h3></div><div className="score"><strong>{Math.round(first.score * 100)}</strong><span>pkt</span></div></div>
+                <div className="recommendation-top"><div><span className="eyebrow">NAJLEPSZE DOPASOWANIE</span><h3>Rekomendowana rotacja</h3></div><div className="score"><strong>{points(first.score)}</strong><span>pkt</span></div></div>
+                {recommendations.length > 1 && Math.abs(first.score - recommendations[1].score) < 0.00005 && <p className="form-hint">Pierwsze dwa warianty uzyskały praktycznie identyczny wynik. Kolejność na liście nie oznacza wyraźnej przewagi agronomicznej.</p>}
                 <div className="rotation-timeline">{first.rotation.map((crop, index) => <div className="rotation-year" key={`${crop}-${index}`}><span>ROK {index + 1}</span><strong>{displayName(crops, crop)}</strong>{index < first.rotation.length - 1 && <i>→</i>}</div>)}</div>
-                {first.explanations?.length ? <div className="explanations"><strong>Dlaczego ten plan?</strong><ul>{first.explanations.map((text, index) => <li key={index}>{text}</li>)}</ul></div> : null}
-                {first.metrics && <div className="metrics">{Object.entries(first.metrics).map(([key, score]) => <div className="metric" key={key}><span>{key}</span><div className="meter"><i style={{ width: `${Math.max(0, Math.min(100, score * 100))}%` }} /></div><b>{Math.round(score * 100)}%</b></div>)}</div>}
+                {first.explanations?.length ? <div className="explanations"><strong>Dlaczego ten plan?</strong><ul>{first.explanations.map((text, index) => <li key={index}>{translateMessage(text)}</li>)}</ul></div> : null}
+                {first.metrics && <div className="metrics">{Object.entries(first.metrics).map(([key, score]) => <div className="metric" key={key}><span>{metricLabels[key] ?? key}</span><div className="meter"><i style={{ width: `${Math.max(0, Math.min(100, score * 100))}%` }} /></div><b>{Math.round(score * 100)}%</b></div>)}</div>}
               </article>}
-              {recommendations.length > 1 && <section className="other-plans"><h3>Inne warianty</h3>{recommendations.slice(1).map((item, index) => <div className="other-plan" key={index}><span>Wariant {index + 2}</span><strong>{item.rotation.map((id) => displayName(crops, id)).join(' → ')}</strong><b>{Math.round(item.score * 100)} pkt</b></div>)}</section>}
-              {result.disclaimer && <p className="disclaimer">ⓘ {result.disclaimer}</p>}
+              {recommendations.length > 1 && <section className="other-plans"><h3>Inne warianty</h3><p className="form-hint">Punktacja z dokładnością do 0,01 pkt. Zbliżone wyniki oznaczają porównywalne warianty, niekoniecznie istotną przewagę pierwszego.</p>{recommendations.slice(1).map((item, index) => <div className="other-plan" key={index}><span>Wariant {index + 2}</span><strong>{item.rotation.map((id) => displayName(crops, id)).join(' → ')}</strong><b title={`Różnica względem pierwszego: ${scoreDifference(first.score, item.score)} pkt`}>{points(item.score)} pkt</b></div>)}</section>}
+              {result.disclaimer && <p className="disclaimer">ⓘ {translateMessage(result.disclaimer)}</p>}
             </>}
           </section>
         </div>
-        <footer>TerraRotation · Dane historyczne NASA POWER i szacunki gleby SoilGrids. Wyniki są demonstracyjne — nie zastępują porady agronomicznej.</footer>
+        <footer>TerraRotation · Dane historyczne NASA POWER i szacunki gleby SoilGrids. Wyniki modelu mają charakter orientacyjny i nie zastępują badań gleby ani porady agronomicznej.</footer>
       </main>
     </div>
   );

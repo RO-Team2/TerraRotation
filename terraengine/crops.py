@@ -16,7 +16,7 @@ class Crop:
     profit: float
     sand_tolerance: float
 
-# Heuristic MVP values, NOT validated yield predictions or local agronomic advice.
+=
 CROPS = {c.id: c for c in [
     Crop("wheat", "poaceae", 6.0, 7.5, 450, 850, 6, 15, 2, -0.5, 0.55, 0.75, 0.55),
     Crop("barley", "poaceae", 6.0, 7.5, 350, 750, 6, 16, 2, -0.4, 0.65, 0.65, 0.65),
