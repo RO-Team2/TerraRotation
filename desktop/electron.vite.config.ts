@@ -1,6 +1,8 @@
 import { resolve } from 'node:path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
+import autoprefixer from 'autoprefixer';
+import tailwindcss from 'tailwindcss';
 
 export default defineConfig({
   main: {
@@ -20,5 +22,16 @@ export default defineConfig({
   renderer: {
     resolve: { alias: { '@renderer': resolve(__dirname, 'src/renderer/src') } },
     plugins: [react()],
+    // Define PostCSS plugins here instead of relying on config-file discovery.
+    // This ensures Tailwind utilities are compiled in Electron-Vite's renderer,
+    // even when the app is launched from a different working directory.
+    css: {
+      postcss: {
+        plugins: [
+          tailwindcss({ config: resolve(__dirname, 'tailwind.config.js') }),
+          autoprefixer(),
+        ],
+      },
+    },
   },
 });
