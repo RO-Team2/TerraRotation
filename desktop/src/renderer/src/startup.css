@@ -1,0 +1,56 @@
+/* TerraRotation brand colors, sidebar lockup, animated welcome and first-run guide. */
+:root { --terra-forest: #073f30; --terra-forest-deep: #052f25; --terra-green: #126044; --terra-lime: #d7ed83; }
+.sidebar { background: linear-gradient(180deg, #073f30 0%, #06382b 58%, #052f25 100%) !important; color: #f4f4e8; }
+.sidebar .brand { min-height: 74px; display: flex; align-items: center; padding: 0 0 8px; background: url('/terrarotation-lockup.svg') left center / min(205px, 100%) auto no-repeat; }
+.sidebar .brand > * { opacity: 0; }
+.sidebar .side-caption { color: #9ab8a6; }
+.sidebar .nav-item { color: #e2eee5; border-radius: 10px; }
+.sidebar .nav-item.active { background: #15583f !important; color: #fff; box-shadow: inset 3px 0 #d7ed83; }
+.sidebar .nav-item:hover { background: rgba(215,237,131,.11); }
+.sidebar .side-note { color: #bdcfc2; }
+.sidebar .sidebar-bottom { color: #9ab8a6; }
+.sidebar .status-dot.online { background: #b6dc65; }
+.startup-app { opacity: 0; transform: translateY(8px); transition: opacity .65s ease, transform .65s cubic-bezier(.2,.8,.2,1); }
+.startup-app-visible { opacity: 1; transform: translateY(0); }
+.welcome-splash { position: fixed; inset: 34px 0 0; z-index: 10000; overflow: hidden; display: grid; place-items: center; color: #f4f4e8; background: radial-gradient(ellipse at 50% 45%, #0c5b40 0%, #073f30 48%, #052c22 100%); animation: welcome-in .38s ease both; }
+.welcome-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: min(460px, 84vw); animation: welcome-rise .8s cubic-bezier(.2,.8,.2,1) both; }
+.welcome-logo { width: min(380px, 78vw); height: auto; filter: drop-shadow(0 16px 38px rgba(0,0,0,.2)); animation: logo-breathe 2.3s ease-in-out infinite; }
+.welcome-rule { width: min(260px, 64vw); height: 2px; margin: 20px 0 13px; overflow: hidden; background: rgba(238,245,226,.18); }
+.welcome-rule span { display: block; width: 42%; height: 100%; background: #d7ed83; animation: welcome-progress 1.65s ease-in-out infinite; }
+.welcome-content p { margin: 0; color: #c5d9c8; font-size: 13px; letter-spacing: .04em; text-align: center; }
+.welcome-loading { display: flex; gap: 6px; margin-top: 23px; }
+.welcome-loading span { width: 5px; height: 5px; border-radius: 50%; background: #d7ed83; animation: loading-dot .9s ease-in-out infinite alternate; }
+.welcome-loading span:nth-child(2) { animation-delay: .18s; }.welcome-loading span:nth-child(3) { animation-delay: .36s; }
+.welcome-footer { position: absolute; bottom: 24px; color: rgba(220,237,220,.54); font-size: 9px; letter-spacing: .2em; }
+.welcome-orbit { position: absolute; width: min(720px, 90vw); aspect-ratio: 1; border: 1px solid rgba(215,237,131,.075); border-radius: 50%; animation: orbit-turn 28s linear infinite; }
+.welcome-orbit::before, .welcome-orbit::after { content: ''; position: absolute; inset: 9%; border: 1px solid rgba(215,237,131,.06); border-radius: 50%; }
+.welcome-orbit::after { inset: 20%; }
+.welcome-orbit-two { width: min(1000px, 120vw); animation-direction: reverse; animation-duration: 40s; }
+.setup-backdrop { position: fixed; inset: 34px 0 0; z-index: 9999; display: grid; place-items: center; padding: 20px; background: rgba(4,25,18,.62); backdrop-filter: blur(7px); animation: welcome-in .35s ease both; }
+.setup-dialog { position: relative; width: min(560px, 100%); padding: 30px 34px 25px; border: 1px solid #e1e9dc; border-radius: 22px; background: #fbfcf8; color: #20362a; box-shadow: 0 32px 100px rgba(0,0,0,.28); animation: dialog-rise .45s cubic-bezier(.2,.8,.2,1) both; }
+.setup-close { position: absolute; top: 17px; right: 17px; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #e1e9dc; border-radius: 9px; background: #fff; color: #617267; cursor: pointer; }
+.setup-logo { display: block; width: 206px; height: auto; padding: 8px 11px; border-radius: 12px; background: #073f30; }
+.setup-step-indicator { display: flex; gap: 6px; margin: 25px 0 22px; }
+.setup-step-indicator span { width: 28px; height: 4px; border-radius: 4px; background: #e1e9dc; transition: background .25s, width .25s; }
+.setup-step-indicator span.complete { width: 44px; background: #4a8b61; }
+.setup-copy { min-height: 220px; animation: dialog-rise .25s ease both; }
+.setup-eyebrow { color: #598064; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
+.setup-icon { display: grid; place-items: center; width: 46px; height: 46px; margin-top: 16px; border-radius: 14px; background: #edf3e6; color: #245440; }
+.setup-copy h1 { margin: 14px 0 8px; font-family: Manrope, sans-serif; font-size: clamp(22px, 4vw, 29px); letter-spacing: -.04em; }
+.setup-copy p { margin: 0; max-width: 470px; color: #68776c; font-size: 13px; line-height: 1.7; }
+.setup-note { display: flex; align-items: center; gap: 8px; margin: 10px 0 18px; padding: 11px 12px; border-radius: 9px; background: #f0f5eb; color: #587261; font-size: 10px; }
+.setup-note svg { flex: 0 0 auto; color: #4a8b61; }
+.setup-actions { display: flex; align-items: center; gap: 9px; padding-top: 15px; border-top: 1px solid #e9eee5; }
+.setup-actions button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 13px; border-radius: 9px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.setup-skip { margin-right: auto; border: 0; background: transparent; color: #718078; }
+.setup-back { border: 1px solid #dfe7dc; background: #fff; color: #526357; }
+.setup-next { border: 1px solid #124d37; background: #124d37; color: #fff; }
+@keyframes welcome-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes welcome-rise { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes logo-breathe { 50% { transform: translateY(-4px); filter: drop-shadow(0 20px 45px rgba(0,0,0,.3)); } }
+@keyframes welcome-progress { 0% { transform: translateX(-120%); } 100% { transform: translateX(260%); } }
+@keyframes loading-dot { to { opacity: .35; transform: translateY(-4px); } }
+@keyframes orbit-turn { to { transform: rotate(360deg); } }
+@keyframes dialog-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 560px) { .setup-dialog { padding: 24px 19px 18px; } .setup-copy { min-height: 245px; } .setup-actions button { padding: 8px 9px; } .welcome-footer { font-size: 8px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
