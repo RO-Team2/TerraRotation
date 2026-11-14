@@ -710,7 +710,7 @@ export function TeamDashboard(): JSX.Element {
               <span>
                 {isComputingRotation
                   ? 'Analiza warstw NASA...'
-                  : 'Generuj optymalny płodozmian (AI + NASA)'}
+                  : 'Generuj optymalny płodozmian'}
               </span>
             </button>
           </div>
@@ -910,10 +910,10 @@ export function TeamDashboard(): JSX.Element {
 
             <div className="absolute bottom-3 left-3 z-20 rounded-lg border border-slate-700/80 bg-[#0F172A]/90 px-3 py-2 backdrop-blur-md">
               <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                {activeLayer === 'smap' && 'NASA SMAP — Wilgotność gleby (% VWC)'}
-                {activeLayer === 'ecostress' && 'NASA ECOSTRESS — Temperatura łanu (°C)'}
-                {activeLayer === 'srtm' && 'NASA SRTM — Wysokość n.p.m. (m)'}
-                {activeLayer === 'satellite' && 'Sentinel / Landsat — Wigor NDVI'}
+                {activeLayer === 'smap' && 'NASA SMAP — Wilgotność gleby w % VWC'}
+                {activeLayer === 'ecostress' && 'NASA ECOSTRESS — Temperatura łanu °C'}
+                {activeLayer === 'srtm' && 'NASA SRTM — Wysokość n.p.m.'}
+                {activeLayer === 'satellite' && 'Sentinel/Landsat — Wigor NDVI'}
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] text-slate-300">
@@ -957,7 +957,7 @@ export function TeamDashboard(): JSX.Element {
               <div className="flex items-center gap-2">
                 <Sprout className="h-4 w-4 text-emerald-400" />
                 <h2 className="text-xs font-bold tracking-wider text-slate-100 uppercase">
-                  Rekomendowana sekwencja płodozmianu (2027 – 2030)
+                  Rekomendowana sekwencja płodozmianu
                 </h2>
                 <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-300">
                   Bilans N cyklu: {simulationSummary.totalNitrogenDelta > 0 ? '+' : ''}
@@ -978,8 +978,8 @@ export function TeamDashboard(): JSX.Element {
 
             <div className="team-rotation-grid grid flex-1 grid-cols-1 gap-3 md:grid-cols-4">
               {rotationPlan.map((step, index) => {
-                const yearLabel = 2027 + index;
-                const isNitrogenPositive = step.crop.nitrogenBalanceKgHa > 0;
+                const yearLabel = 2027+index;
+                const isNitrogenPositive = step.crop.nitrogenBalanceKgHa>0;
 
                 return (
                   <div
@@ -1087,7 +1087,7 @@ export function TeamDashboard(): JSX.Element {
               <div className="grid grid-cols-1 gap-2">
                 <div className="rounded-lg border border-slate-700/70 bg-[#0F172A]/80 p-2.5">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Wilgotność gleby (SMAP L4)</span>
+                    <span>Wilgotność gleby</span>
                     <Droplets className="h-3.5 w-3.5 text-sky-400" />
                   </div>
                   <div className="mt-1 flex items-baseline justify-between">
@@ -1102,7 +1102,7 @@ export function TeamDashboard(): JSX.Element {
 
                 <div className="rounded-lg border border-slate-700/70 bg-[#0F172A]/80 p-2.5">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Ryzyko termiczne (POWER / ECO)</span>
+                    <span>Ryzyko termiczne</span>
                     <ThermometerSun className="h-3.5 w-3.5 text-amber-400" />
                   </div>
                   <div className="mt-1 flex items-baseline justify-between">
@@ -1126,7 +1126,7 @@ export function TeamDashboard(): JSX.Element {
                       {activeMetrics.gpmAnnualPrecipMm} mm/r
                     </span>
                     <span className="font-mono text-[11px] font-semibold text-amber-400 tabular-nums">
-                      {activeMetrics.gpmPrecipTrendPct}% / 10 lat
+                      {activeMetrics.gpmPrecipTrendPct}%/10 lat
                     </span>
                   </div>
                 </div>
@@ -1207,7 +1207,7 @@ export function TeamDashboard(): JSX.Element {
                 {[
                   {
                     id: 'normal' as const,
-                    label: 'Normalny sezon (Baseline NASA)',
+                    label: 'Normalny sezon',
                     badge: '100% GPM',
                   },
                   {
