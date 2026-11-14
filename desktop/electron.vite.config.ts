@@ -9,7 +9,13 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
-    build: { rollupOptions: { input: { index: resolve(__dirname, 'src/preload/index.ts') } } },
+    // Sandboxed preload scripts must use CommonJS, even with type: module.
+    build: {
+      rollupOptions: {
+        input: { index: resolve(__dirname, 'src/preload/index.ts') },
+        output: { format: 'cjs', entryFileNames: '[name].cjs' },
+      },
+    },
   },
   renderer: {
     resolve: { alias: { '@renderer': resolve(__dirname, 'src/renderer/src') } },
