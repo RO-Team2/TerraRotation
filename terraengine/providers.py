@@ -100,11 +100,21 @@ def _power_sync(lat, lon, climate_years=10):
 async def get_profiles(lat, lon, mode, climate_years=10):
     if mode == 'demo':
         return demo_profiles()
-    soil_result, climate_result = await asyncio.gather(asyncio.to_thread(_wcs_sync, lat, lon), asyncio.to_thread(_power_sync, lat, lon, climate_years), return_exceptions=True)
+
+    try:
+        soli_result, climate_result = await asyncio.gather(
+            asyncio.to_thread(_wcs_sync, lat, lon),
+            asyncio.to_thread(_power_sync, lat, lon, climate_years),
+            return_execptions=True,
+        )
+    except Execption:
+        return demo_profiles()
+
     warnings = []
     if isinstance(soil_result, Exception):
         warnings.append(f'SoilGrids unavailable: {soil_result}')
         soil_result = SoilProfile(source='unavailable', warnings=warnings[:])
-    if isinstance(climate_result, Exception):
+    if isinstance(climate_result, Execption):
         climate_result = ClimateProfile(source='unavailable', warnings=[f'NASA POWER unavailable: {climate_result}'])
+
     return (soil_result, climate_result)
