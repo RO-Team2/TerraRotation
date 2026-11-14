@@ -15,6 +15,7 @@ class FieldRequest(BaseModel):
     ph_override: float | None = Field(default=None, ge=0, le=14)
     sand_override: float | None = Field(default=None, ge=0, le=100)
     soc_override: float | None = Field(default=None, ge=0)
+
     @model_validator(mode="after")
     def check_crops(self):
         if self.allowed_crops is not None and not self.allowed_crops:
@@ -43,11 +44,11 @@ class SoilProfile(BaseModel):
 class ClimateProfile(BaseModel):
     avg_temp_c: float | None = None
     annual_rain_mm: float | None = None
-    annual_rain_days: int | None = None  # days with >=1 mm precipitation, annual mean
+    annual_rain_days: int | None = None
     observation_days: int | None = None
     climate_years: int | None = None
     annual_rain_std_mm: float | None = None
-    dry_spell_max_days: int | None = None  # max consecutive days with <1 mm
-    frost_days_mean: float | None = None  # T2M_MIN < 0 C
+    dry_spell_max_days: int | None = None
+    frost_days_mean: float | None = None
     source: str
     warnings: list[str] = Field(default_factory=list)

@@ -2,10 +2,10 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from .crops import CROPS
+from .engine import recommend
 from .models import FieldRequest
 from .providers import get_profiles
-from .engine import recommend
-from .crops import CROPS
 
 app = FastAPI(
     title="TerraRotation API",
@@ -13,7 +13,6 @@ app = FastAPI(
     description="Hackathon MVP: crop rotation recommendations from NASA POWER and ISRIC SoilGrids.",
 )
 
-# Comma-separated frontend origins; localhost defaults cover typical dev servers.
 origins = [x.strip() for x in os.getenv(
     "TERRAROTATION_CORS_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000,"
@@ -56,7 +55,7 @@ def crops():
 @app.post("/recommend", include_in_schema=False)
 async def recommendation(req: FieldRequest):
     soil, climate = await get_profiles(req.latitude, req.longitude, req.mode, req.climate_years)
-    updates = {}
+    updates: dict[str, float] = {}
     if req.ph_override is not None:
         updates["ph"] = req.ph_override
     if req.sand_override is not None:
@@ -65,11 +64,11 @@ async def recommendation(req: FieldRequest):
         updates["soc_g_kg"] = req.soc_override
     if updates:
         soil = soil.model_copy(update=updates)
-        soil.warnings = [*soil.warnings, "User-provided soil overrides applied"]
+        soil.warnings = [*soil.warnings, "Zastosowano ręcznie podane parametry gleby."]
     try:
         result = recommend(req, soil, climate)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"input": req.model_dump(), "soil": soil.model_dump(),
             "climate": climate.model_dump(), "engine": result,
-            "disclaimer": "Heuristic prototype; verify with local agronomist and field sampling"}
+            "disclaimer": "Model heurystyczny; wyniki należy zweryfikować z agronomem i badaniami gleby."}

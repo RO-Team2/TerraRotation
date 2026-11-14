@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-from itertools import islice
 from .crops import CROPS
 
 WEIGHTS = {
@@ -14,15 +12,18 @@ def interval_score(value, lo, hi, margin):
         return .5
     if lo <= value <= hi:
         return 1.0
-    return max(0.0, 1 - min(abs(value-lo), abs(value-hi))/margin)
+    distance = min(abs(value - lo), abs(value - hi))
+    return max(0.0, 1.0 - distance / margin)
 
 def depth_weighted(soil, field):
-    weights = {"0-5cm": .2, "5-15cm": .4, "15-30cm": .4}
+    weights = {"0-5cm": 0.2, "5-15cm": 0.4, "15-30cm": 0.4}
     valid = [(getattr(layer, field), weights[layer.depth]) for layer in soil.layers
              if layer.depth in weights and getattr(layer, field) is not None]
     if not valid:
         return getattr(soil, field)
-    return sum(value * weight for value, weight in valid) / sum(weight for _, weight in valid)
+    weighted_total = sum(value * weight for value, weight in valid)
+    total_weight = sum(weight for _, weight in valid)
+    return weighted_total / total_weight
 
 def crop_fit(crop, soil, climate):
     ph = depth_weighted(soil, "ph")
@@ -32,15 +33,15 @@ def crop_fit(crop, soil, climate):
                   interval_score(climate.avg_temp_c, crop.temp_min, crop.temp_max, 6)]
     if sand is not None:
         components.append(1.0 if sand <= 60 else max(0.0, 1 - ((sand-60)/40)*(1-crop.sand_tolerance)))
-    return sum(components)/len(components)
+    return sum(components) / len(components)
 
 def can_follow(sequence, crop_id):
     crop = CROPS[crop_id]
-    # Return interval is counted in calendar years between occurrences.
+
     for i, old in enumerate(reversed(sequence), 1):
         if old == crop_id and i < crop.min_return_years:
             return False
-    # Do not allow consecutive crops from same botanical family.
+
     if sequence and CROPS[sequence[-1]].family == crop.family:
         return False
     return True
@@ -51,7 +52,7 @@ def simulate_rotation(rotation, soil, climate, history=()):
     organic = 0.5
     timeline = []
     previous = history[-1] if history else None
-    # Pre-crop bonus and penalties are declared heuristics, not fitted effects.
+
     for year, name in enumerate(rotation, 1):
         crop = CROPS[name]
         legume_previous = previous is not None and CROPS[previous].family == 'fabaceae'
@@ -70,46 +71,49 @@ def simulate_rotation(rotation, soil, climate, history=()):
     return timeline
 
 def metrics(rotation, soil, climate, history=()):
-    cs = [CROPS[name] for name in rotation]
+    crops = [CROPS[name] for name in rotation]
     timeline = simulate_rotation(rotation, soil, climate, history)
     fit = sum(row["fit"] for row in timeline)/len(timeline)
-    # Normalized, transparent heuristics; not carbon accounting or yield forecasting.
+
     soil_score = max(0.0, min(1.0, .5 * timeline[-1]["nitrogen_index"] + .5 * timeline[-1]["organic_matter_index"]))
-    resilience = sum(c.resilience for c in cs)/len(cs)
-    # Penalize exposure to historical interannual rainfall variability and dry spells.
+    resilience = sum(c.resilience for c in crops)/len(crops)
+
     if climate.annual_rain_mm and climate.annual_rain_std_mm is not None:
         cv = climate.annual_rain_std_mm / max(climate.annual_rain_mm, 1)
         resilience *= max(.65, 1 - min(cv, .7)*.30)
     if climate.dry_spell_max_days is not None:
         resilience *= max(.75, 1 - max(0, climate.dry_spell_max_days-20)*.005)
-    profit = sum(c.profit for c in cs)/len(cs)
-    diversity = len({c.family for c in cs}) / len(cs)
+    profit = sum(c.profit for c in crops)/len(crops)
+    diversity = len({c.family for c in crops}) / len(crops)
     return {"fit": round(fit, 4), "soil": round(soil_score, 4),
             "resilience": round(resilience, 4), "profit": round(profit, 4),
             "diversity": round(diversity, 4)}
 
-def weighted_score(m, scenario):
-    w = WEIGHTS[scenario]
-    return round(sum(m[k]*v for k,v in w.items()) * .9 + .1*m['diversity'], 5)
+def weighted_score(metrics_by_key, scenario):
+    weights = WEIGHTS[scenario]
+    weighted_metrics = sum(
+        metrics_by_key[key] * weight for key, weight in weights.items()
+    )
+    return round(weighted_metrics * 0.9 + 0.1 * metrics_by_key["diversity"], 5)
 
 def dominates(a, b):
     keys = ('fit', 'soil', 'resilience', 'profit', 'diversity')
     return all(a[k] >= b[k] for k in keys) and any(a[k] > b[k] for k in keys)
 
 def explain(rotation, soil, climate, m):
-    explanations = [f"Botanical families alternate; return intervals enforced for {len(rotation)} planned years.",
-                    "Annual nitrogen and organic-matter indices are illustrative proxies, not measured soil changes."]
+    explanations = [f"Uprawy należą do różnych rodzin botanicznych; zachowano wymagane odstępy w {len(rotation)}-letnim planie.",
+                    "Roczne wskaźniki azotu i materii organicznej są szacunkowe i nie przedstawiają rzeczywistych pomiarów gleby."]
     if any(CROPS[c].family == 'fabaceae' for c in rotation):
-        explanations.append("Includes a legume; modeled positive soil-effect heuristic (not measured N fixation).")
+        explanations.append("Plan uwzględnia roślinę strączkową; jej korzystny wpływ na glebę jest modelowany, a nie potwierdzony pomiarem wiązania azotu.")
     if soil.sand_pct is not None and soil.sand_pct > 65:
-        explanations.append(f"Sandy soil ({soil.sand_pct:.1f}% sand) considered in crop fit.")
+        explanations.append(f"Uwzględniono udział piasku w glebie ({soil.sand_pct:.1f}%) przy ocenie dopasowania upraw.")
     if climate.climate_years:
-        explanations.append(f"Climate fit uses {climate.climate_years} historical complete years; not a future forecast.")
+        explanations.append(f"Dopasowanie klimatyczne oparto na {climate.climate_years} pełnych latach danych historycznych, a nie na prognozie pogody.")
     if climate.dry_spell_max_days is not None:
-        explanations.append(f"Longest historical dry spell (<1 mm/day): {climate.dry_spell_max_days} days.")
+        explanations.append(f"Najdłuższy historyczny okres z opadem poniżej 1 mm/dzień: {climate.dry_spell_max_days} dni.")
     if climate.annual_rain_mm is None:
-        explanations.append("Rainfall missing: crop suitability partly neutral; uncertainty elevated.")
-    explanations.append(f"Average agronomic fit: {m['fit']:.2f} on 0-1 heuristic scale.")
+        explanations.append("Brak danych o opadach; ocena dopasowania upraw jest obarczona większą niepewnością.")
+    explanations.append(f"Średnie dopasowanie agronomiczne: {m['fit']:.2f} w heurystycznej skali od 0 do 1.")
     return explanations
 
 def recommend(req, soil, climate):
@@ -119,7 +123,7 @@ def recommend(req, soil, climate):
         raise ValueError(f"Unknown crops: {sorted(set(unknown))}")
     if len(allowed) < 2:
         raise ValueError("At least two crops are required for rotation")
-    # Incomplete required data must never produce an apparently validated recommendation.
+
     missing = [name for name, value in (("soil.ph", soil.ph), ("soil.sand_pct", soil.sand_pct),
               ("climate.avg_temp_c", climate.avg_temp_c), ("climate.annual_rain_mm", climate.annual_rain_mm))
               if value is None]
@@ -127,10 +131,11 @@ def recommend(req, soil, climate):
         return {"status": "insufficient_data", "explored": 0, "truncated": False,
                 "pareto_pool_limited": False, "recommendations": [],
                 "warnings": ["Missing required inputs: " + ", ".join(missing)]}
-    # Validate history itself only for names; historic agronomic violations are retained as facts.
+
     scores = []
     visited = 0
     truncated = False
+
     def dfs(seq):
         nonlocal visited, truncated
         if visited >= req.max_candidates:
@@ -146,12 +151,12 @@ def recommend(req, soil, climate):
                 dfs(seq + [name])
                 if truncated:
                     return
+
     dfs([])
     if not scores:
         return {"status": "no_feasible_rotation", "explored": visited, "truncated": truncated,
                 "recommendations": [], "warnings": ["No rotation satisfies configured hard constraints"]}
-    # Exact Pareto frontier across every enumerated candidate, not just top weighted items.
-    # Maintain an incremental nondominated set, removing dominated candidates.
+
     scores.sort(key=lambda x: (-x[0], x[1]))
     frontier = []
     for item in scores:

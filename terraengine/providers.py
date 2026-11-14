@@ -1,12 +1,10 @@
 import asyncio
 import datetime as dt
-import io
 import json
 import math
 import urllib.parse
 import urllib.request
-from functools import lru_cache
-from .models import SoilProfile, SoilLayer, ClimateProfile
+from .models import ClimateProfile, SoilLayer, SoilProfile
 
 IGHPROJ = "+proj=igh +datum=WGS84 +units=m +no_defs"
 
@@ -22,44 +20,49 @@ def _wcs_sync(lat, lon):
     except ImportError as exc:
         raise RuntimeError("Live SoilGrids requires Python GDAL bindings (osgeo)") from exc
     gdal.UseExceptions()
-    src = osr.SpatialReference(); src.ImportFromEPSG(4326); src.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-    dst = osr.SpatialReference(); dst.ImportFromProj4(IGHPROJ)
+    src = osr.SpatialReference()
+    src.ImportFromEPSG(4326)
+    src.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    dst = osr.SpatialReference()
+    dst.ImportFromProj4(IGHPROJ)
     x, y, _ = osr.CoordinateTransformation(src, dst).TransformPoint(lon, lat)
-    result = {}; warnings = []
+    result = {}
+    warnings = []
     depths = ("0-5cm", "5-15cm", "15-30cm")
     for depth in depths:
-      for prop in ("phh2o", "soc", "clay", "sand", "silt"):
-          params = [("map", f"/map/{prop}.map"), ("SERVICE", "WCS"), ("VERSION", "2.0.1"),
-                    ("REQUEST", "GetCoverage"), ("COVERAGEID", f"{prop}_{depth}_mean"),
-                    ("SUBSET", f"x({x-1000:.2f},{x+1000:.2f})"),
-                    ("SUBSET", f"y({y-1000:.2f},{y+1000:.2f})"), ("FORMAT", "image/tiff")]
-          url = "https://maps.isric.org/mapserv?" + urllib.parse.urlencode(params)
-          try:
-              with urllib.request.urlopen(url, timeout=20) as response:
-                  data = response.read()
-              if data[:4] not in (b"II*\x00", b"MM\x00*"):
-                  raise ValueError("WCS returned non-TIFF")
-              path = f"/vsimem/terrarotation_{prop}_{id(data)}.tif"
-              gdal.FileFromMemBuffer(path, data)
-              try:
-                  ds = gdal.Open(path)
-                  inv = gdal.InvGeoTransform(ds.GetGeoTransform())
-                  px, py = gdal.ApplyGeoTransform(inv, x, y)
-                  col, row = math.floor(px), math.floor(py)
-                  if not (0 <= col < ds.RasterXSize and 0 <= row < ds.RasterYSize):
-                      raise ValueError("Coordinate outside returned raster")
-                  band = ds.GetRasterBand(1)
-                  raw = float(band.ReadAsArray(col, row, 1, 1)[0, 0])
-                  nodata = band.GetNoDataValue()
-                  result[(depth, prop)] = None if (raw == 0 or (nodata is not None and raw == nodata)) else raw / 10
-                  if result[(depth, prop)] is None:
-                      warnings.append(f"{depth}/{prop}: zero or NoData; not interpreted as valid value")
-                  band = None; ds = None
-              finally:
-                  gdal.Unlink(path)
-          except Exception as exc:
-              result[(depth, prop)] = None
-              warnings.append(f"{depth}/{prop}: {type(exc).__name__}: {exc}")
+        for prop in ("phh2o", "soc", "clay", "sand", "silt"):
+            params = [("map", f"/map/{prop}.map"), ("SERVICE", "WCS"), ("VERSION", "2.0.1"),
+                      ("REQUEST", "GetCoverage"), ("COVERAGEID", f"{prop}_{depth}_mean"),
+                      ("SUBSET", f"x({x-1000:.2f},{x+1000:.2f})"),
+                      ("SUBSET", f"y({y-1000:.2f},{y+1000:.2f})"), ("FORMAT", "image/tiff")]
+            url = "https://maps.isric.org/mapserv?" + urllib.parse.urlencode(params)
+            try:
+                with urllib.request.urlopen(url, timeout=20) as response:
+                    data = response.read()
+                if data[:4] not in (b"II*\x00", b"MM\x00*"):
+                    raise ValueError("WCS returned non-TIFF")
+                path = f"/vsimem/terrarotation_{prop}_{id(data)}.tif"
+                gdal.FileFromMemBuffer(path, data)
+                try:
+                    ds = gdal.Open(path)
+                    inv = gdal.InvGeoTransform(ds.GetGeoTransform())
+                    px, py = gdal.ApplyGeoTransform(inv, x, y)
+                    col, row = math.floor(px), math.floor(py)
+                    if not (0 <= col < ds.RasterXSize and 0 <= row < ds.RasterYSize):
+                        raise ValueError("Coordinate outside returned raster")
+                    band = ds.GetRasterBand(1)
+                    raw = float(band.ReadAsArray(col, row, 1, 1)[0, 0])
+                    nodata = band.GetNoDataValue()
+                    result[(depth, prop)] = None if (raw == 0 or (nodata is not None and raw == nodata)) else raw / 10
+                    if result[(depth, prop)] is None:
+                        warnings.append(f"{depth}/{prop}: zero or NoData; not interpreted as valid value")
+                    band = None
+                    ds = None
+                finally:
+                    gdal.Unlink(path)
+            except Exception as exc:
+                result[(depth, prop)] = None
+                warnings.append(f"{depth}/{prop}: {type(exc).__name__}: {exc}")
     layers = [SoilLayer(depth=depth, ph=result.get((depth, 'phh2o')),
                         soc_g_kg=result.get((depth, 'soc')),
                         clay_pct=result.get((depth, 'clay')),
@@ -73,7 +76,7 @@ def _wcs_sync(lat, lon):
                        source="ISRIC SoilGrids WCS mean 0-30cm (3 layers)", warnings=warnings)
 
 def _power_sync(lat, lon, climate_years=10):
-    # NASA POWER daily, historical complete years; one request for the full range.
+
     year = dt.date.today().year - 1
     start = year - climate_years + 1
     params = {"parameters": "T2M,T2M_MIN,PRECTOTCORR", "community": "AG", "longitude": lon,
@@ -109,12 +112,13 @@ def _power_sync(lat, lon, climate_years=10):
     rain_totals = [v[1] for v in by_year]
     rain_mean = sum(rain_totals) / len(rain_totals)
     rain_std = (sum((r-rain_mean)**2 for r in rain_totals)/len(rain_totals))**.5
-    mean = lambda i: sum(v[i] for v in by_year) / len(by_year)
-    return ClimateProfile(avg_temp_c=mean(0), annual_rain_mm=rain_mean,
-                          annual_rain_days=round(mean(2)), observation_days=sum(v[5] for v in by_year),
+    def annual_mean(index):
+        return sum(year_data[index] for year_data in by_year) / len(by_year)
+    return ClimateProfile(avg_temp_c=annual_mean(0), annual_rain_mm=rain_mean,
+                          annual_rain_days=round(annual_mean(2)), observation_days=sum(v[5] for v in by_year),
                           climate_years=len(by_year), annual_rain_std_mm=rain_std,
                           dry_spell_max_days=max(v[3] for v in by_year),
-                          frost_days_mean=mean(4), source=f"NASA POWER daily {start}-{year}",
+                          frost_days_mean=annual_mean(4), source=f"NASA POWER daily {start}-{year}",
                           warnings=([f"Only {len(by_year)} of {climate_years} years passed completeness checks"]
                                     if len(by_year) < climate_years else []))
 
