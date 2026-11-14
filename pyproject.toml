@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "terrarotation-engine"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.110", "uvicorn>=0.29", "pydantic>=2.6", "httpx>=0.27", "numpy>=1.26"]
+[project.optional-dependencies]
+soil = ["GDAL>=3.6"]
+[tool.setuptools.packages.find]
+include = ["terrarotation*"]
