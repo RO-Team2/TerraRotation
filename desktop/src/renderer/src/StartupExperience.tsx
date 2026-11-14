@@ -70,7 +70,7 @@ export default function StartupExperience({ children }: { children: ReactNode })
     {tutorial && !splash && <div className="setup-backdrop">
       <section className="setup-dialog" role="dialog" aria-modal="true" aria-labelledby="setup-title">
         <button className="setup-close" onClick={finishTutorial} aria-label="Pomiń samouczek"><X size={18} /></button>
-        <img className="setup-logo" src="/terrarotation-lockup.svg" alt="TerraRotation" />
+        <img className="setup-logo" src="/terrarotation.svg" alt="TerraRotation" />
         <div className="setup-step-indicator">{steps.map((item, index) => <span key={item.eyebrow} className={index <= step ? 'complete' : ''} />)}</div>
         <div className="setup-copy" key={step}>
           <span className="setup-eyebrow">{steps[step].eyebrow} · KONFIGURACJA</span>
