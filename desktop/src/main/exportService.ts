@@ -9,7 +9,7 @@ export async function saveGeoJsonDialog(
     title: 'Eksportuj mapę aplikacyjną do terminala ciągnika (GeoJSON)',
     defaultPath: `fieldshift_tractor_plan_${new Date().toISOString().slice(0, 10)}.geojson`,
     filters: [
-      { name: 'GeoJSON / ISOXML Boundary', extensions: ['geojson', 'json'] },
+      { name: 'GeoJSON/ISOXML Boundary', extensions: ['geojson', 'json'] },
     ],
   };
 
@@ -26,8 +26,6 @@ export async function saveGeoJsonDialog(
 }
 
 export type PdfView = 'analysis' | 'map' | 'team';
-
-/** Runs inside the renderer. Capture once, before the save dialog can change the active tab. */
 export function captureActiveReport(requestedView?: unknown): { view: PdfView; html: string; css: string } {
   const reports = Array.from(document.querySelectorAll<HTMLElement>('[data-pdf-report]'));
   const report = reports.find(element => !element.closest('[hidden]') && element.getClientRects().length > 0
@@ -47,14 +45,12 @@ export function captureActiveReport(requestedView?: unknown): { view: PdfView; h
   });
   const css = Array.from(document.styleSheets).flatMap(sheet => {
     try {
-      // External font imports are unnecessary for a self-contained, offline PDF.
       return Array.from(sheet.cssRules).filter(rule => rule.type !== 3).map(rule => rule.cssText);
     } catch { return []; }
   }).join('\n');
   return { view, html: clone.outerHTML, css };
 }
 
-/** Isolated snapshot prevents tab changes and background job updates from altering a PDF. */
 export async function renderReportPdf(snapshot: { view: PdfView; html: string; css: string }): Promise<Buffer> {
   const printWindow = new BrowserWindow({
     show: false, width: 900, height: 1200,
