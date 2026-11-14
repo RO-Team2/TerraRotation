@@ -46,7 +46,7 @@ def _wcs_sync(lat, lon):
                     band = ds.GetRasterBand(1)
                     raw = float(band.ReadAsArray(col, row, 1, 1)[0, 0])
                     nodata = band.GetNoDataValue()
-                    result[depth, prop] = None if raw == 0 or (nodata is not None and raw == nodata) else raw / 10
+                    result[depth, prop] = None if raw == 0 or (nodata is not None and raw == nodata) else raw/10
                     if result[depth, prop] is None:
                         warnings.append(f'{depth}/{prop}: zero or NoData; not interpreted as valid value')
                     band = None
@@ -61,8 +61,8 @@ def _wcs_sync(lat, lon):
     return SoilProfile(ph=surface.ph, soc_g_kg=surface.soc_g_kg, clay_pct=surface.clay_pct, sand_pct=surface.sand_pct, silt_pct=surface.silt_pct, layers=layers, source='ISRIC SoilGrids WCS mean 0-30cm (3 layers)', warnings=warnings)
 
 def _power_sync(lat, lon, climate_years=10):
-    year = dt.date.today().year - 1
-    start = year - climate_years + 1
+    year = dt.date.today().year-1
+    start = year-climate_years+1
     params = {'parameters': 'T2M,T2M_MIN,PRECTOTCORR', 'community': 'AG', 'longitude': lon, 'latitude': lat, 'start': f'{start}0101', 'end': f'{year}1231', 'format': 'JSON'}
     url = 'https://power.larc.nasa.gov/api/temporal/daily/point?' + urllib.parse.urlencode(params)
     with urllib.request.urlopen(url, timeout=90) as response:
@@ -78,7 +78,7 @@ def _power_sync(lat, lon, climate_years=10):
             tmin = data['T2M_MIN'].get(key)
             if all((isinstance(v, (int, float)) and math.isfinite(v) and (v > -900) for v in (t, rain, tmin))) and rain >= 0:
                 valid.append((t, rain, tmin))
-        expected = 366 if yr % 4 == 0 and (yr % 100 != 0 or yr % 400 == 0) else 365
+        expected = 366 if yr%4 == 0 and (yr%100 != 0 or yr%400 == 0) else 365
         if len(valid) < expected - 5:
             continue
         rain_total = sum((v[1] for v in valid))
@@ -86,15 +86,15 @@ def _power_sync(lat, lon, climate_years=10):
         for _, rain, _ in valid:
             dry_run = dry_run + 1 if rain < 1 else 0
             longest = max(longest, dry_run)
-        by_year.append((sum((v[0] for v in valid)) / len(valid), rain_total, sum((v[1] >= 1 for v in valid)), longest, sum((v[2] < 0 for v in valid)), len(valid)))
-    if len(by_year) < max(3, math.ceil(climate_years * 0.7)):
+        by_year.append((sum((v[0] for v in valid))/len(valid), rain_total, sum((v[1] >= 1 for v in valid)), longest, sum((v[2] < 0 for v in valid)), len(valid)))
+    if len(by_year) < max(3, math.ceil(climate_years*0.7)):
         raise ValueError(f'Insufficient complete NASA POWER years: {len(by_year)}/{climate_years}')
     rain_totals = [v[1] for v in by_year]
-    rain_mean = sum(rain_totals) / len(rain_totals)
-    rain_std = (sum(((r - rain_mean) ** 2 for r in rain_totals)) / len(rain_totals)) ** 0.5
+    rain_mean = sum(rain_totals)/len(rain_totals)
+    rain_std = (sum(((r-rain_mean) ** 2 for r in rain_totals))/len(rain_totals))**0.5
 
     def annual_mean(index):
-        return sum((year_data[index] for year_data in by_year)) / len(by_year)
+        return sum((year_data[index] for year_data in by_year))/len(by_year)
     return ClimateProfile(avg_temp_c=annual_mean(0), annual_rain_mm=rain_mean, annual_rain_days=round(annual_mean(2)), observation_days=sum((v[5] for v in by_year)), climate_years=len(by_year), annual_rain_std_mm=rain_std, dry_spell_max_days=max((v[3] for v in by_year)), frost_days_mean=annual_mean(4), source=f'NASA POWER daily {start}-{year}', warnings=[f'Only {len(by_year)} of {climate_years} years passed completeness checks'] if len(by_year) < climate_years else [])
 
 async def get_profiles(lat, lon, mode, climate_years=10):
@@ -107,7 +107,7 @@ async def get_profiles(lat, lon, mode, climate_years=10):
             asyncio.to_thread(_power_sync, lat, lon, climate_years),
             return_execptions=True,
         )
-    except Execption:
+    except Exception
         return demo_profiles()
 
     warnings = []
