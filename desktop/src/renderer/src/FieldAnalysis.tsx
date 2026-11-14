@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { Crop, RecommendRequest, RecommendResponse } from './types';
 import MapView from './MapView';
+import PdfExportButton from './PdfExportButton';
 
 const scenarioLabels: Record<string, string> = {
   balanced: 'Zrównoważony', soil: 'Zdrowie gleby', resilience: 'Odporność', profit: 'Opłacalność',
@@ -167,11 +168,29 @@ export default function FieldAnalysis({ visible = true }: { visible?: boolean })
             </form>
           </section>
 
-          <section className="results-column">
+          <section className="results-column" data-pdf-report="analysis" data-pdf-ready={!!result && !loading}>
             {!result && !loading && !error && <div className="empty-state"><div className="empty-icon">⌁</div><h3>Twój plan pojawi się tutaj</h3><p>Uzupełnij dane pola i uruchom analizę. Domyślnie korzystamy z rzeczywistych danych klimatycznych i glebowych.</p></div>}
             {loading && <div className="empty-state"><div className="spinner large"/><h3>Analizuję warunki pola</h3><p>Pobieranie danych z NASA POWER i SoilGrids może chwilę potrwać.</p></div>}
             {error && <div className="alert error"><strong>Nie udało się wygenerować planu</strong><p>{error}</p><button className="text-button" onClick={() => setError('')}>Zamknij</button></div>}
             {result && <>
+              <PdfExportButton view="analysis" disabled={loading} />
+              <header className="pdf-only pdf-report-header">
+                <span>TerraRotation · Analiza pola</span><h1>Plan zmianowania</h1>
+                <p>Punkt: {result.input?.latitude ?? latitude}, {result.input?.longitude ?? longitude} · Plan: {first?.rotation.length ?? result.input?.years ?? years} lata · Scenariusz: {scenarioLabels[result.input?.scenario ?? scenario] ?? scenario}</p>
+                <p data-pdf-export-time />
+              </header>
+              <section className="pdf-only pdf-parameters">
+                <h2>Parametry gleby i klimatu</h2>
+                <p>Gleba: {result.soil?.source ?? 'Brak źródła'} · Klimat: {String(result.climate?.source ?? 'Brak źródła')}</p>
+                <table><thead><tr><th>Warstwa gleby</th><th>pH</th><th>Piasek (%)</th><th>Ił (%)</th><th>Pył (%)</th><th>SOC (g/kg)</th></tr></thead>
+                  <tbody>{(result.soil?.layers?.length ? result.soil.layers : [result.soil ?? {}]).map((layer, index) => <tr key={index}>
+                    <td>{String(layer.depth ?? 'Profil')}</td><td>{value(layer.ph)}</td><td>{value(layer.sand_pct)}</td><td>{value(layer.clay_pct)}</td><td>{value(layer.silt_pct)}</td><td>{value(layer.soc_g_kg)}</td>
+                  </tr>)}</tbody></table>
+                <table><tbody>{[
+                  ['Lata historii klimatu', 'climate_years', ''], ['Zmienność opadów (odch. standardowe)', 'annual_rain_std_mm', ' mm'],
+                  ['Najdłuższy okres bez opadów', 'dry_spell_max_days', ' dni'], ['Średnia liczba dni mroźnych rocznie', 'frost_days_mean', ' dni'],
+                ].map(([label, key, unit]) => <tr key={key}><th>{label}</th><td>{value(result.climate?.[key], unit)}</td></tr>)}</tbody></table>
+              </section>
               <div className="result-heading"><div><span className="eyebrow">02 · WYNIKI ANALIZY</span><h2>Warunki i rekomendacje</h2></div><span className={`result-status ${result.engine.status === 'ok' ? 'success' : ''}`}>{result.engine.status === 'ok' ? 'Analiza gotowa' : result.engine.status}</span></div>
               <div className="stats-grid">
                 <article className="stat-card"><span>ŚREDNIA TEMP.</span><strong>{value(result.climate?.avg_temp_c, '°C')}</strong><small>średnia z danych klimatycznych</small></article>

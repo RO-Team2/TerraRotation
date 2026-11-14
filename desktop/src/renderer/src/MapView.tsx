@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import PdfExportButton from './PdfExportButton';
 import type { SatelliteRequest, MapAnalysisResponse } from './types';
 
 const isoDay = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString().slice(0, 10);
@@ -269,7 +270,7 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
         <button className="text-button" disabled={!ready || loading} onClick={useLocation}>Użyj lokalizacji w analizie płodozmianu →</button>
         {error && <div className="alert error" role="alert">{error}</div>}
       </section>
-      <section className="results-column" aria-busy={loading}>
+      <section className="results-column" aria-busy={loading} data-pdf-report="map" data-pdf-ready={!!result && !loading && result.status !== 'running'}>
         <article className="panel map-panel">
           <div className="result-heading"><h2>Zdjęcia terenu</h2><span className="result-status success">Podkład wizualny</span></div>
           <div ref={container} className="leaflet-field-map" aria-label="Zdjęcia terenu. Kliknij punkt lub obrysuj granice pola." />
@@ -278,6 +279,10 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
         </article>
         {loading && <div className="panel analysis-progress" role="status">Analiza działa w tle · gotowe źródła: {result ? [result.power, result.sentinel, result.smap, result.ecostress].filter(source => source && source.status !== 'pending').length : 0}/4. Wyniki pojawiają się na bieżąco. Możesz wskazać inne pole lub anulować pobieranie.</div>}
         {result && <article className="panel analysis-results map-integrated-report">
+          <PdfExportButton view="map" disabled={loading || result.status === 'running'} />
+          <header className="pdf-only pdf-report-header"><span>TerraRotation · Mapa</span><h1>Raport satelitarny i agrotechniczny</h1>
+            <p>Okres: {result.start_date} – {result.end_date} · Punkt: {result.latitude.toFixed(5)}, {result.longitude.toFixed(5)}</p><p data-pdf-export-time />
+          </header>
           <div className="result-heading"><h2>Raport agrotechniczny</h2><span className="result-status">{result.status === 'running' ? 'Analiza w toku' : result.status === 'ok' ? '4 źródła dostępne' : result.status === 'partial' ? 'Dane częściowe' : 'Brak danych'}</span></div>
           <p className="map-caption">{result.start_date} – {result.end_date} · punkt odniesienia: {result.latitude.toFixed(5)}, {result.longitude.toFixed(5)}. POWER i SMAP są próbkowane dla punktu wewnątrz obrysu, NDVI dla całego obszaru.</p>
           <div className="map-source-grid">

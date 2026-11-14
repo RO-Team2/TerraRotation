@@ -8,6 +8,7 @@ import './styles.css';
 import './polish.css';
 import './team-layout.css';
 import './startup.css';
+import './print.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><WindowBar /><StartupExperience><App /></StartupExperience></React.StrictMode>,

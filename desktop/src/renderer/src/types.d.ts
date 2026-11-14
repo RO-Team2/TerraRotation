@@ -12,7 +12,7 @@ declare global {
       windowControl: (action: 'minimize' | 'maximize' | 'close') => Promise<void>;
       syncField: (fieldId: string) => Promise<{ metrics: Record<string, unknown>; fromCache: boolean }>;
       exportGeoJson: (payload: unknown) => Promise<{ savedPath?: string }>;
-      exportPdf: () => Promise<{ savedPath?: string }>;
+      exportPdf: (view?: 'analysis' | 'map') => Promise<{ savedPath?: string }>;
       health: () => Promise<{ status: string; service?: string; version?: string }>;
       config: () => Promise<ApiConfig>;
       crops: () => Promise<{ crops: Crop[]; note?: string }>;
@@ -95,7 +95,8 @@ export interface Recommendation {
 }
 
 export interface RecommendResponse {
-  soil?: { layers?: Array<Record<string, unknown>>; warnings?: string[]; source?: string };
+  input?: RecommendRequest;
+  soil?: { [key: string]: unknown; layers?: Array<Record<string, unknown>>; warnings?: string[]; source?: string };
   climate?: Record<string, unknown> & { warnings?: string[]; source?: string };
   engine: { status: string; recommendations?: Recommendation[]; warnings?: string[]; truncated?: boolean };
   disclaimer?: string;

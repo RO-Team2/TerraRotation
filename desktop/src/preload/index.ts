@@ -27,7 +27,7 @@ const terraApi = {
   windowControl: nasaApi.windowControl,
   syncField: nasaApi.syncNasaData,
   exportGeoJson: nasaApi.exportGeoJSON,
-  exportPdf: () => nasaApi.exportPDF(undefined),
+  exportPdf: (view?: 'analysis' | 'map') => nasaApi.exportPDF(view),
   satellite: async (payload: unknown) => {
     try { return await ipcRenderer.invoke('api:satellite', payload); }
     catch (error) { throw presentSatelliteError(error); }

@@ -444,7 +444,7 @@ export function TeamDashboard(): JSX.Element {
   const polygonPointsAttr = activeField.coordinates.map(([x, y]) => `${x},${y}`).join(' ');
 
   return (
-    <div className="team-workspace flex flex-col overflow-hidden bg-[#0F172A] text-slate-100 select-none font-sans">
+    <div data-pdf-report="team" data-pdf-ready="true" className="team-workspace flex flex-col overflow-hidden bg-[#0F172A] text-slate-100 select-none font-sans">
       <header className="team-toolbar flex h-12 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0B1120] px-4">
         <div className="titlebar-no-drag flex items-center gap-4">
           <div className="flex items-center gap-2.5">

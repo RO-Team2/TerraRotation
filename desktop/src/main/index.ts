@@ -89,7 +89,7 @@ ipcMain.handle('export:geojson', (_event, payload: unknown) =>
   saveGeoJsonDialog(mainWindow, payload)
 );
 
-ipcMain.handle('export:pdf', () => savePdfReportDialog(mainWindow));
+ipcMain.handle('export:pdf', (_event, view: unknown) => savePdfReportDialog(mainWindow, view));
 ipcMain.handle('api:health', () => apiRequest('/api/v1/health'));
 ipcMain.handle('api:config', () => apiRequest('/api/v1/config'));
 ipcMain.handle('api:crops', () => apiRequest('/api/v1/crops'));
