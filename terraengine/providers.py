@@ -107,7 +107,7 @@ async def get_profiles(lat, lon, mode, climate_years=10):
             asyncio.to_thread(_power_sync, lat, lon, climate_years),
             return_execptions=True,
         )
-    except Exception
+    except Exception:
         return demo_profiles()
 
     warnings = []
