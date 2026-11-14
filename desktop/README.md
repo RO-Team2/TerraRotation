@@ -40,3 +40,24 @@ To tworzy skompilowane pliki Electron/Vite w `out/`. Instalatory systemowe nie s
 ## Bezpieczeństwo
 
 Okno Electron ma `contextIsolation` i `sandbox` włączone oraz `nodeIntegration` wyłączone. Renderer nie ma bezpośredniego dostępu do Node.js. Backend FastAPI musi być uruchomiony osobno.
+
+## Mapa pola i analityka
+
+Leaflet wyświetla szczegółowy podkład Esri World Imagery z etykietami.
+Przełącznik warstw udostępnia również mapę drogową OSM. Kafelki są pobierane
+bezpośrednio od dostawcy; nie korzystają z kluczy Copernicus ani z dat analizy.
+
+Wybierz punkt lub „Obrysuj pole”, zaznacz narożniki i zakończ obrys.
+Ustaw daty i limit chmur, a następnie wybierz „Analizuj pole · Sentinel-2”.
+Backend zwraca statystyki NDVI i powierzchnię analizowanego obszaru.
+Opcjonalny GeoTIFF jest plikiem analitycznym do pobrania, nie tłem mapy.
+
+Klient OAuth Copernicus (`COPERNICUS_CLIENT_ID`, `COPERNICUS_CLIENT_SECRET`)
+pozostaje na backendzie. Frontend komunikuje się przez Electron IPC z
+`POST /api/v1/satellite/field`. Konfiguracja i kontrakt API są w głównym README.
+
+## Widoki po scaleniu interfejsu
+
+Górny przełącznik zachowuje oba interfejsy: „Analiza LIVE i mapa” obsługuje
+rzeczywisty backend FastAPI i Sentinel-2, a „Panel zespołu · DEMO” zawiera
+nowy pulpit zespołu z przykładowymi gospodarstwami i lokalnymi metrykami.

@@ -128,6 +128,84 @@ Powyżej jest **skrócony przykład poglądowy**, a nie pełna odpowiedź: realn
 
 ## 4. Integracja z React / Vite
 
+### Mapa pola i niezależna analiza Sentinel-2
+
+Aplikacja ma dwie niezależne warstwy:
+
+- **Podkład wizualny Leaflet:** kafelki Esri World Imagery z etykietami, do
+  rozpoznawania terenu i wskazywania granic działki. Alternatywnie mapa OSM.
+  Dostawca i autorzy danych są wskazani na mapie. Szczegółowość i data zdjęć
+  zależą od lokalizacji i dostawcy; data analizy nie zmienia podkładu.
+- **Silnik analityczny FastAPI:** pobiera dane Copernicus Sentinel-2 L2A,
+  oblicza NDVI z B08/B04 na siatce UTM 10 m i zwraca wyniki liczbowe.
+  Nie generuje podkładu RGB ani kafelków mapy. Odpowiedź może opcjonalnie
+  zawierać raster NDVI do pobrania, który nie jest nakładany jako tło.
+
+W zakładce **Mapa** wybierz „Punkt i otoczenie” albo „Obrysuj pole”.
+W trybie obrysu kliknij narożniki działki, wybierz „Zakończ obrys” i
+„Analizuj pole · Sentinel-2”. Przycisk „Cofnij punkt” usuwa ostatni wierzchołek.
+Obsługiwany jest pojedynczy poligon bez otworów, do 100 wierzchołków,
+bez przecinających się krawędzi, o rozpiętości do 5 km.
+Współrzędne GeoJSON są w kolejności `[longitude, latitude]`.
+
+**Konfiguracja backendu:** utwórz klienta OAuth Sentinel Hub w
+[Copernicus Dashboard](https://shapps.dataspace.copernicus.eu/dashboard/).
+[Instrukcja uwierzytelniania](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html).
+Klucze pozostają na backendzie, nie w zmiennych `VITE_*`.
+
+```bash
+python -m pip install -e .
+export COPERNICUS_CLIENT_ID='twoj-client-id'
+export COPERNICUS_CLIENT_SECRET='twoj-client-secret'
+python -m uvicorn terraengine.api:app --host 127.0.0.1 --port 8000
+```
+
+Dla Docker Compose uzupełnij `.env` według `.env.example` i uruchom
+`docker compose up --build`. Sam uvicorn nie wczytuje `.env` automatycznie.
+
+**API:** `POST /api/v1/satellite/field`, analiza punktu lub poligonu.
+Przykład poligonu:
+
+```bash
+curl --fail http://127.0.0.1:8000/api/v1/satellite/field \
+  -H 'Content-Type: application/json' \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[16.70,52.28],[16.703,52.28],[16.703,52.282],[16.70,52.282],[16.70,52.28]]]},"start_date":"2024-06-01","end_date":"2024-06-15","max_cloud_coverage":30,"include_geotiff":false}' \
+  --output field.json
+```
+
+Dla punktu zastąp `geometry` polami `latitude`, `longitude`, `radius_m`
+(50–2500 m, wielokrotność 10). Nie podawaj jednocześnie punktu i poligonu.
+Analiza punktu obejmuje kwadrat o boku `2 * radius_m`.
+
+Odpowiedź: `stats` (średnia, mediana, minimum i maksimum NDVI, liczba ważnych
+pikseli, liczba wszystkich pikseli w obszarze i procent ważnych danych),
+`area_ha`, `geometry` (rzeczywisty analizowany obszar), `assessment`, `warnings`,
+`source`, `resolution_m`, `crs`, `start_date`, `end_date`.
+`geotiff` jest domyślnie null; ustaw `include_geotiff=true`, aby otrzymać
+analityczny GeoTIFF Float32 10 m z `nodata=-9999` jako data URL.
+Poza poligonem raster zawiera nodata. Nie ma już pól `image`, `rgb_image`,
+`rgb_geotiff` ani `bounds` podglądu.
+
+Granice pola są przekazywane do Process API i dodatkowo maskowane lokalnie.
+Statystyki obejmują piksele, których środki leżą wewnątrz poligonu.
+Powierzchnia `area_ha` pochodzi z geometrii w UTM, a nie z liczby pikseli.
+Mały poligon bez środka żadnego piksela 10 m zwraca 422.
+
+Maska SCL ma rozdzielczość 20 m; zachowujemy klasy 4, 5, 6 (roślinność,
+gleba, woda). Chmury, cienie, śnieg i brak danych są wykluczane.
+Limit zachmurzenia dotyczy sceny, nie gwarantuje bezchmurnego pola.
+Mozaika `leastCC` może łączyć różne przeloty z zakresu do 31 dni.
+NDVI bez kontekstu uprawy, fazy rozwoju i porównania w czasie nie jest
+samodzielną diagnozą kondycji ani prognozą plonu; aplikacja wyświetla to ograniczenie.
+Silnik płodozmianu nadal korzysta osobno z NASA POWER i SoilGrids.
+
+Błędy: 404 brak ważnych pikseli, 422 błędne parametry/geometria, 429 limit,
+503 brak konfiguracji/uprawnień, 502/504 błąd lub timeout Copernicus.
+
+Dokumentacja: [Process API](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Process/Examples/S2L2A.html),
+[Esri World Imagery](https://doc.arcgis.com/en/data-appliance/2024/maps/world-imagery.htm).
+Testy: `python -m unittest discover -s tests -v`.
+
 W repo frontendu dodaj `.env.local`:
 
 ```dotenv

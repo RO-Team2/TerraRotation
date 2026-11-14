@@ -12,6 +12,11 @@ const nasaApi = {
 };
 
 const terraApi = {
+  windowControl: nasaApi.windowControl,
+  syncField: nasaApi.syncNasaData,
+  exportGeoJson: nasaApi.exportGeoJSON,
+  exportPdf: () => nasaApi.exportPDF(undefined),
+  satellite: (payload: unknown) => ipcRenderer.invoke('api:satellite', payload),
   health: () => ipcRenderer.invoke('api:health'),
   config: () => ipcRenderer.invoke('api:config'),
   crops: () => ipcRenderer.invoke('api:crops'),

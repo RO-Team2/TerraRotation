@@ -19,8 +19,9 @@ body {
 button, input, select { font: inherit; }
 button, select { cursor: pointer; }
 
-.app-shell { min-height: 100vh; animation: polish-enter .55s both; }
+.app-shell { display: flex; align-items: flex-start; min-height: 100vh; animation: polish-enter .55s both; }
 .sidebar {
+  flex: 0 0 238px;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -34,7 +35,7 @@ button, select { cursor: pointer; }
 .status-dot { box-shadow: 0 0 0 4px rgba(215, 237, 131, .08); }
 .status-dot.online { animation: status-pulse 2.4s ease-in-out infinite; }
 
-.main-content { isolation: isolate; }
+.main-content { flex: 1; min-width: 0; margin-left: 0; isolation: isolate; }
 .topbar { animation: polish-rise .48s .04s both; }
 .intro {
   position: relative;
@@ -147,6 +148,8 @@ input:focus, select:focus {
   .app-shell { display: block; }
   .sidebar { position: relative; width: 100%; height: auto; min-height: 0; padding: 14px 18px; }
   .side-caption, .nav-item, .sidebar-bottom { display: none; }
+  .sidebar nav { display: flex; gap: 8px; margin-top: 12px; }
+  .sidebar nav .nav-item { display: block; width: auto; }
   .side-note { margin-top: 10px; }
   .main-content { min-width: 0; padding: 18px; }
   .topbar { gap: 12px; }
@@ -162,3 +165,15 @@ input:focus, select:focus {
     transition-duration: .01ms !important;
   }
 }
+
+/* The main process uses a frameless window; retain native window actions. */
+.window-bar { position: sticky; top: 0; z-index: 2000; height: 34px; display: flex; align-items: center; justify-content: space-between; padding-left: 16px; background: #183c30; color: #edf4e5; font-size: 11px; -webkit-app-region: drag; user-select: none; }
+.window-buttons { height: 100%; display: flex; -webkit-app-region: no-drag; }
+.window-buttons button { width: 44px; height: 100%; border: 0; background: transparent; color: inherit; font-size: 18px; }
+.window-buttons button:hover { background: #2b5744; }
+.window-buttons .window-close:hover { background: #b9433e; }
+.app-shell { min-height: calc(100vh - 34px); }
+.sidebar { top: 34px; height: calc(100vh - 34px); }
+@media (max-width: 760px) { .sidebar { top: 0; height: auto; } }
+
+.app-view-switch{position:sticky;top:34px;z-index:1500;display:flex;gap:8px;padding:8px 16px;background:#eaf0e2;border-bottom:1px solid #dce4d5}.app-view-switch button{padding:6px 12px;border:1px solid #b9c8ae;border-radius:6px;background:white;color:#183c30;font-size:12px}.app-view-switch button[aria-pressed=true]{background:#254b38;color:white}.app-shell{min-height:calc(100vh - 81px)}.sidebar{top:81px;height:calc(100vh - 81px)}.team-dashboard-view>div{height:calc(100vh - 81px);width:100%}.titlebar-drag{-webkit-app-region:drag}.titlebar-no-drag{-webkit-app-region:no-drag}@media(max-width:760px){.sidebar{top:0;height:auto}}

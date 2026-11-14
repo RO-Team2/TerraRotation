@@ -15,7 +15,7 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { Accept: 'application/json', ...init?.headers },
     });
   } catch {
-    throw new Error(`Nie można połączyć się z API (${API_BASE}). Działam w trybie Offline Cache.`);
+    throw new Error(`Nie można połączyć się z API (${API_BASE}). Sprawdź, czy backend jest uruchomiony.`);
   }
 
   const body = (await response.json().catch(() => null)) as unknown;
@@ -93,6 +93,12 @@ ipcMain.handle('export:pdf', () => savePdfReportDialog(mainWindow));
 ipcMain.handle('api:health', () => apiRequest('/api/v1/health'));
 ipcMain.handle('api:config', () => apiRequest('/api/v1/config'));
 ipcMain.handle('api:crops', () => apiRequest('/api/v1/crops'));
+ipcMain.handle('api:satellite', (_event, payload: unknown) => apiRequest('/api/v1/satellite/field', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+  signal: AbortSignal.timeout(120000),
+}));
 ipcMain.handle('api:recommend', (_event, payload: unknown) =>
   apiRequest('/api/v1/recommend', {
     method: 'POST',
@@ -100,6 +106,7 @@ ipcMain.handle('api:recommend', (_event, payload: unknown) =>
     body: JSON.stringify(payload),
   })
 );
+
 
 app.disableHardwareAcceleration();
 
