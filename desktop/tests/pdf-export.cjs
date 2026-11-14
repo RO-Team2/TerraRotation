@@ -1,4 +1,3 @@
-/* Integration check: render the real React views and export through Electron printToPDF. */
 const { app, BrowserWindow } = require('electron');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
