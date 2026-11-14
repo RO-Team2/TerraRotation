@@ -18,3 +18,5 @@ build/
 .env
 .env.local
 out/
+# Pycharm
+.idea/
