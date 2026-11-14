@@ -55,6 +55,8 @@ ipcMain.handle('api:recommend', (_event, payload: unknown) => apiRequest('/api/v
   body: JSON.stringify(payload),
 }));
 
+app.disableHardwareAcceleration();
+
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => {
