@@ -95,20 +95,17 @@ app.whenReady().then(async () => {
     await win.webContents.executeJavaScript(`document.querySelector('.field-selection').closest('form').requestSubmit()`);
     await waitFor(win, `document.querySelector('[data-pdf-report="map"]').dataset.pdfReady === 'true'`);
     const map = await capture(win, 'map');
-    // Switching tabs after capture must not change the frozen satellite report.
     await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Analiza pola')).click()`);
     await assert.rejects(capture(win, 'map'));
     const mapText = await verifyPdf('map', map,
       ['Raport satelitarny', 'NASA POWER', 'Sentinel-2', 'NASA SMAP', 'NASA ECOSTRESS', 'ECOSTRESS_EMPTY', 'FIELD_CHECK_11', 'LIMITS_END', 'NDVI_END'],
       ['Plan zmianowania', 'Wybierz pole', 'Eksportuj do PDF', 'Zdjęcia terenu', 'ANALYSIS_END']);
     assert(mapText.split('\f').length > 2, 'Long report must paginate');
-    // Cancelled save dialogs must not create a print window or output file.
     const { dialog } = require('electron');
     const originalDialog = dialog.showSaveDialog;
     try {
       dialog.showSaveDialog = async () => ({ canceled: true });
       assert.deepEqual(await savePdfReportDialog(win, 'analysis'), {});
-      // The dialog may remain open while the active tab changes. Export the captured plan.
       dialog.showSaveDialog = async () => {
         await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Mapa')).click()`);
         return { canceled: false, filePath: path.join(output, 'saved-plan') };
