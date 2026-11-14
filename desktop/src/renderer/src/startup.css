@@ -1,8 +1,8 @@
 :root { --terra-forest: #073f30; --terra-forest-deep: #052f25; --terra-green: #126044; --terra-lime: #d7ed83; }
 .sidebar { background: linear-gradient(180deg, #073f30 0%, #06382b 58%, #052f25 100%) !important; color: #f4f4e8; }
-.sidebar .brand { min-height: 74px; display: flex; align-items: center; padding: 0 0 8px; background: url('/terrarotation.svg') left center/min(205px, 100%) auto no-repeat; }
-.sidebar .brand > * { opacity: 0; }
-.sidebar .side-caption { color: #9ab8a6; }
+.sidebar .brand { width: 100%; height: 120px; min-height: 120px; display: flex; align-items: center; padding: 0; background: url('/terrarotation.svg') left center/contain no-repeat; }
+.sidebar .brand > * { display: none; }
+.sidebar .side-caption { margin-top: 28px; color: #9ab8a6; }
 .sidebar .nav-item { color: #e2eee5; border-radius: 10px; }
 .sidebar .nav-item.active { background: #15583f !important; color: #fff; box-shadow: inset 3px 0 #d7ed83; }
 .sidebar .nav-item:hover { background: rgba(215,237,131,.11); }
@@ -19,7 +19,8 @@
 .welcome-content p { margin: 0; color: #c5d9c8; font-size: 13px; letter-spacing: .04em; text-align: center; }
 .welcome-loading { display: flex; gap: 6px; margin-top: 23px; }
 .welcome-loading span { width: 5px; height: 5px; border-radius: 50%; background: #d7ed83; animation: loading-dot .9s ease-in-out infinite alternate; }
-.welcome-loading span:nth-child(2) { animation-delay: .18s; }.welcome-loading span:nth-child(3) { animation-delay: .36s; }
+.welcome-loading span:nth-child(2) { animation-delay: .18s; }
+.welcome-loading span:nth-child(3) { animation-delay: .36s; }
 .welcome-footer { position: absolute; bottom: 24px; color: rgba(220,237,220,.54); font-size: 9px; letter-spacing: .2em; }
 .welcome-orbit { position: absolute; width: min(720px, 90vw); aspect-ratio: 1; border: 1px solid rgba(215,237,131,.075); border-radius: 50%; animation: orbit-turn 28s linear infinite; }
 .welcome-orbit::before, .welcome-orbit::after { content: ''; position: absolute; inset: 9%; border: 1px solid rgba(215,237,131,.06); border-radius: 50%; }
