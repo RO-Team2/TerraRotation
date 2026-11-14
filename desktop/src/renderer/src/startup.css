@@ -1,6 +1,6 @@
 :root { --terra-forest: #073f30; --terra-forest-deep: #052f25; --terra-green: #126044; --terra-lime: #d7ed83; }
 .sidebar { background: linear-gradient(180deg, #073f30 0%, #06382b 58%, #052f25 100%) !important; color: #f4f4e8; }
-.sidebar .brand { min-height: 74px; display: flex; align-items: center; padding: 0 0 8px; background: url('/terrarotation-lockup.svg') left center / min(205px, 100%) auto no-repeat; }
+.sidebar .brand { min-height: 74px; display: flex; align-items: center; padding: 0 0 8px; background: url('/terrarotation.svg') left center / min(205px, 100%) auto no-repeat; }
 .sidebar .brand > * { opacity: 0; }
 .sidebar .side-caption { color: #9ab8a6; }
 .sidebar .nav-item { color: #e2eee5; border-radius: 10px; }
