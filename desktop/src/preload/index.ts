@@ -32,6 +32,10 @@ const terraApi = {
     try { return await ipcRenderer.invoke('api:satellite', payload); }
     catch (error) { throw presentSatelliteError(error); }
   },
+  mapJobStart: (payload: unknown) => ipcRenderer.invoke('api:map-job-start', payload),
+  mapJobStatus: (id: string) => ipcRenderer.invoke('api:map-job-status', id),
+  mapJobCancel: (id: string) => ipcRenderer.invoke('api:map-job-cancel', id),
+  mapAnalyze: (payload: unknown) => ipcRenderer.invoke('api:map-analyze', payload),
   health: () => ipcRenderer.invoke('api:health'),
   config: () => ipcRenderer.invoke('api:config'),
   crops: () => ipcRenderer.invoke('api:crops'),

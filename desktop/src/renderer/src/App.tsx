@@ -76,7 +76,7 @@ export default function App() {
     window.setTimeout(() => setProfileOpen(false), 450);
   }
 
-  return <>
+  return <div className={view === 'team' ? 'app-layout app-layout-team' : 'app-layout'}>
     <nav className="app-view-switch" aria-label="Widok aplikacji">
       <button aria-pressed={view === 'live'} onClick={() => setView('live')}>Analiza LIVE i mapa</button>
       <button aria-pressed={view === 'team'} onClick={() => setView('team')}>Panel zespołu</button>
@@ -116,5 +116,5 @@ export default function App() {
         </form>
       </section>
     </div>}
-  </>;
+  </div>;
 }

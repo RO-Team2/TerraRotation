@@ -30,3 +30,26 @@
 .live-data-note { padding-top: 8px; border-top: 1px solid rgba(188, 213, 192, .12); }
 @media (max-width: 850px) { .live-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .live-team-stats { margin: 10px; padding: 13px; } .live-team-heading { align-items: flex-start; flex-direction: column; } .profile-toggle > span:last-child { display: none; } .live-stat-grid { grid-template-columns: 1fr 1fr; } }
+
+.map-integrated-report { margin-top: 16px; }
+.map-source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.map-source-card { min-width: 0; background: #f4f7f0; border: 1px solid #e0e8d9; border-radius: 10px; padding: 14px; overflow-wrap: anywhere; }
+.map-source-card h3 { margin: 0 0 12px; font-size: 12px; color: #335444; }
+.map-source-card strong { font-size: 24px; color: #245440; }
+.map-source-card p, .map-finding p, .map-finding li, .map-report-limits { font-size: 12px; line-height: 1.6; }
+.map-source-card small { font-size: 10px; color: #637465; }
+.map-finding { border-left: 3px solid #85a970; padding: 10px 14px; margin: 10px 0; background: #f6f8f2; border-radius: 6px; }
+.map-finding.watch { border-left-color: #d49b38; background: #fff8e9; }
+.map-finding h4, .map-finding p { margin: 4px 0; }
+.map-finding ul, .map-report-limits ul { padding-left: 18px; }
+.map-report-limits { margin: 16px 0 0; color: #687664; }
+.map-report-limits summary { cursor: pointer; }
+@media (max-width: 1300px) { .map-source-grid { grid-template-columns: 1fr; } }
+
+.map-source-progress { margin-top: 12px; padding: 12px; border: 1px solid #dce6d4; border-radius: 9px; background: #f3f7ee; font-size: 12px; }
+.map-source-progress ul { list-style: none; padding: 0; margin: 10px 0; }
+.map-source-progress li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; }
+.map-source-progress li[data-status="ok"] b { color: #2a704a; }
+.map-source-progress li[data-status="pending"] b { color: #8c6727; }
+.map-source-progress li[data-status="unavailable"] b { color: #945344; }
+.map-source-progress p { font-size: 11px; line-height: 1.5; color: #64715f; }

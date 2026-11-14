@@ -47,7 +47,14 @@ export default function LiveTeamStats() {
   }, [refresh]);
 
   const synced = snapshot.checkedAt?.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) ?? '—';
-  return <section className="live-team-stats" aria-live="polite">
+  return <details className="live-team-stats">
+    <summary className="live-team-summary">
+      <span><Activity size={14} /> Stan usług API</span>
+      <span className={snapshot.online ? 'online-text' : 'offline-text'} role="status">{snapshot.online === null ? 'Sprawdzanie…' : snapshot.online ? 'Połączono' : 'Offline'}</span>
+      <span className="live-summary-time">Aktualizacja: {synced}</span>
+      <span className="live-summary-toggle">Szczegóły</span>
+    </summary>
+    <div className="live-team-details">
     <div className="live-team-heading">
       <div><span className="live-kicker"><Activity size={14} /> DANE NA ŻYWO Z APLIKACJI</span><h2>Stan zespołu i usług</h2><p>Statystyki pobierane z aktywnego backendu, odświeżane co 15 sekund.</p></div>
       <button className="live-refresh" onClick={() => void refresh()}>Odśwież teraz</button>
@@ -60,5 +67,6 @@ export default function LiveTeamStats() {
     </div>
     {snapshot.error && <p className="live-api-error" role="status">Backend niedostępny: {snapshot.error}</p>}
     <p className="live-data-note">To są bieżące dane usługowe API, a nie statystyki całego zespołu ani deklarowane wyniki produkcyjne.</p>
-  </section>;
+    </div>
+  </details>;
 }

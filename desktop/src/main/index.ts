@@ -99,6 +99,16 @@ ipcMain.handle('api:satellite', (_event, payload: unknown) => apiRequest('/api/v
   body: JSON.stringify(payload),
   signal: AbortSignal.timeout(120000),
 }));
+ipcMain.handle('api:map-job-start', (_event, payload: unknown) => apiRequest('/api/map/jobs', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload), signal: AbortSignal.timeout(15000),
+}));
+ipcMain.handle('api:map-job-status', (_event, id: string) => apiRequest(`/api/map/jobs/${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) }));
+ipcMain.handle('api:map-job-cancel', (_event, id: string) => apiRequest(`/api/map/jobs/${encodeURIComponent(id)}`, { method: 'DELETE', signal: AbortSignal.timeout(10000) }));
+ipcMain.handle('api:map-analyze', (_event, payload: unknown) => apiRequest('/api/map/analyze', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload), signal: AbortSignal.timeout(125000),
+}));
 ipcMain.handle('api:recommend', (_event, payload: unknown) =>
   apiRequest('/api/v1/recommend', {
     method: 'POST',

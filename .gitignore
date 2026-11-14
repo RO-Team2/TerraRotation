@@ -20,3 +20,9 @@ build/
 out/
 # Pycharm
 .idea/
+
+# Keep the map integration regression suite even when local excludes hide tests.
+!tests/
+tests/*
+!tests/test_map_analysis.py
+!tests/test_ecostress.py

@@ -4,12 +4,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .crops import CROPS
 from .imagery import router as imagery_router
+from .map_analysis import router as map_router
 from .engine import recommend
 from .models import AdaptRequest, FieldRequest
 from .providers import get_profiles
 from .stress import confidence_report, rotation_dna, stress_test
 app = FastAPI(title='TerraRotation API', version='1.0.0', description='Hackathon MVP: crop rotation recommendations from NASA POWER and ISRIC SoilGrids.')
 app.include_router(imagery_router)
+app.include_router(map_router)
 origins = [x.strip() for x in os.getenv('TERRAROTATION_CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080').split(',') if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['GET', 'POST', 'OPTIONS'], allow_headers=['Content-Type', 'Accept'])
 

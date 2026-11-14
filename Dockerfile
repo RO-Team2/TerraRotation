@@ -20,7 +20,7 @@ RUN python -m pip install --no-cache-dir setuptools wheel \
     && python -c "from osgeo import gdal, gdal_array, osr; print('GDAL:', gdal.VersionInfo())"
 
 # Field analytics uses Rasterio and Shapely independently of SoilGrids GDAL.
-RUN python -m pip install --no-cache-dir "rasterio>=1.4" "shapely>=2.0"
+RUN python -m pip install --no-cache-dir "rasterio>=1.4" "shapely>=2.0" "h5py>=3.10"
 
 COPY terraengine/ /app/terraengine/
 

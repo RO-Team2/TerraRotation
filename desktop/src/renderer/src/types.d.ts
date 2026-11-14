@@ -17,6 +17,10 @@ declare global {
       config: () => Promise<ApiConfig>;
       crops: () => Promise<{ crops: Crop[]; note?: string }>;
       recommend: (payload: RecommendRequest) => Promise<RecommendResponse>;
+      mapJobStart: (payload: SatelliteRequest) => Promise<MapJob>;
+      mapJobStatus: (id: string) => Promise<MapJob>;
+      mapJobCancel: (id: string) => Promise<MapJob>;
+      mapAnalyze: (payload: SatelliteRequest) => Promise<MapAnalysisResponse>;
       satellite: (payload: SatelliteRequest) => Promise<SatelliteResponse>;
     };
   }
@@ -95,4 +99,35 @@ export interface RecommendResponse {
   climate?: Record<string, unknown> & { warnings?: string[]; source?: string };
   engine: { status: string; recommendations?: Recommendation[]; warnings?: string[]; truncated?: boolean };
   disclaimer?: string;
+}
+
+export interface MapSource<T> { status: 'ok' | 'unavailable' | 'pending'; data: T | null; message: string | null }
+export interface MapPower {
+  source: string; resolution: string; start_date: string; end_date: string;
+  days_requested: number; valid_days: number; coverage_percent: number;
+  mean_temp_c: number; rain_mm: number; hot_days: number; frost_days: number;
+  longest_dry_spell_days: number;
+}
+export interface MapSmap {
+  source: string; resolution_km: number; depth_cm: string; observation_date: string;
+  surface_moisture_percent: number; quality_flag: number; orbit: string;
+  pixel_latitude: number; pixel_longitude: number; distance_to_pixel_center_km: number; sampling: string;
+}
+export interface MapEcostress {
+  source: string; lst_c: number; lst_kelvin: number; resolution_m: number;
+  observation_time: string; quality_flag: number; sampling: string;
+}
+export interface MapAnalysisResponse {
+  status: 'ok' | 'partial' | 'unavailable' | 'running'; latitude: number; longitude: number;
+  start_date: string; end_date: string;
+  power: MapSource<MapPower>; sentinel: MapSource<SatelliteResponse>; smap: MapSource<MapSmap>; ecostress: MapSource<MapEcostress>;
+  findings: Array<{ code: string; severity: string; title: string; evidence: string[]; action: string }>;
+  warnings: string[];
+}
+
+export interface MapJob {
+  id: string;
+  status: 'running' | 'completed' | 'cancelled' | 'failed';
+  completed_sources: number;
+  result: MapAnalysisResponse;
 }

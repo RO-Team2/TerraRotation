@@ -262,3 +262,87 @@ TERRAROTATION_CORS_ORIGINS='http://localhost:5173,http://192.168.1.20:5173' \
 Backendowiec uruchamia serwer i udostępnia adres API; frontendowiec bierze `frontend-example/api.js` oraz `/docs` i `/openapi.json`. Do pracy nad wyglądem można używać `mode: "demo"`; przed pokazem jury sprawdzić `mode: "live"` i komunikaty błędów.
 # 2026-hackathon-nasa
 # 2026-hackathon-nasa
+
+## Zintegrowana analiza w widoku Mapa
+
+Mapa Esri ma osobny endpoint `POST /api/map/analyze`. Nie zmienia on
+`/api/v1/recommend`, `/api/v1/adapt` ani dostawców używanych przez Analizę pola.
+Przyjmuje ten sam punkt/obrys, zakres dat do 31 dni, zachmurzenie i opcję
+GeoTIFF co `/api/v1/satellite/field`. Kliknięcie punktu lub zakończenie obrysu
+uruchamia analizę automatycznie; przycisk umożliwia ponowienie.
+
+Źródła pobierane są niezależnie, równolegle:
+
+- **NASA POWER Daily / AG**: temperatura średnia/min/max, opady, wilgotność
+  powietrza i wiatr dzienny (UTC). Raport pokazuje kompletność dni, sumę opadów,
+  upały, przymrozki i najdłuższy ciąg dni z opadem poniżej 1 mm. Braki przerywają
+  ciąg suchych dni; suma opadów nie jest ekstrapolowana.
+- **Sentinel-2**: istniejący serwis NDVI, wywoływany bez zmiany jego implementacji.
+- **NASA SMAP SPL3SMP v009**: powierzchniowe 0–5 cm, siatka 36 km. Pobierane są
+  maksymalnie 3 najnowsze granule okresu z NASA CMR / NSIDC. Wybierany jest
+  najbliższy piksel, a następnie sprawdzana jakość (flaga 0 lub 8); błędny piksel
+  nie jest zastępowany sąsiednim. Wynik to pojedyncza obserwacja, nie średnia
+  obrysu ani wilgotność strefy korzeniowej.
+
+Zainstaluj zależności `python -m pip install -e .` (nowa: `h5py`). POWER nie
+wymaga klucza. Sentinel-2 wymaga istniejących zmiennych Copernicus. SMAP wymaga
+**`EARTHDATA_TOKEN`** z [Earthdata Login](https://urs.earthdata.nasa.gov/),
+ważnego dla pobierania danych NSIDC i zgody na właściwą aplikację Earthdata.
+Token ustaw wyłącznie na backendzie. Compose przekazuje go z `.env`;
+uvicorn wymaga wyeksportowania go w terminalu. Brak tokenu nie blokuje POWER
+ani NDVI. Pobieranie SMAP ograniczono do 64 MB na plik. Dane punktowe są
+buforowane przez 15 minut w ograniczonym pamięciowo cache niezależnym od Analizy pola.
+
+Odpowiedź zawiera `power`, `sentinel`, `smap` (każde z `status`, `data`,
+`message`), `findings`, `warnings` i status całości `ok`, `partial` lub
+`unavailable`. Dla poligonu POWER i SMAP próbkują punkt wewnątrz obrysu;
+NDVI obejmuje cały obrys. Braki źródeł są jawne i nie uruchamiają danych demo.
+
+Interpretacja jest heurystyczna: m.in. łączy co najmniej 7 dni bez istotnego
+opadu z wilgotnością SMAP poniżej 0,15 m³/m³, uwzględnia NDVI, upały i epizody
+opadów ≥25 mm/dzień. Wnioskowanie pogodowe wymaga ≥80% kompletnych dni,
+wykorzystanie NDVI ≥70% ważnych pikseli, a SMAP daty do 7 dni względem końca
+okresu. Te progi są orientacyjne; raport nie wyznacza dawek nawożenia lub
+nawodnienia i nie utożsamia niskiego NDVI z niedoborem azotu.
+
+Dokumentacja źródeł: [POWER Daily API](https://power.larc.nasa.gov/docs/services/api/temporal/daily/),
+[SMAP SPL3SMP v9](https://nsidc.org/data/spl3smp/versions/9),
+[CMR Search API](https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html).
+
+
+### Analiza mapy w tle
+
+Interfejs mapy korzysta z `POST /api/map/jobs` (HTTP 202) i odczytuje
+`GET /api/map/jobs/{id}` co około sekundę. Wyniki każdego źródła są dostępne
+od razu po jego zakończeniu, bez oczekiwania na SMAP. `DELETE /api/map/jobs/{id}`
+anuluje pobieranie. Zmiana obszaru lub parametrów anuluje poprzednie zadanie;
+spóźnione odpowiedzi nie nadpisują wyników nowego pola. Interfejs pozostaje
+aktywny podczas analizy i pokazuje liczbę zakończonych źródeł.
+
+Status zadania: `running`, `completed`, `cancelled`, `failed`; status źródła:
+`pending`, `ok`, `unavailable`. Raport w trakcie pobierania ma status `running`;
+końcowa interpretacja jest uzupełniana po kolejnych wynikach. Dotychczasowy
+`POST /api/map/analyze` pozostaje dostępny dla klientów oczekujących pełnej odpowiedzi.
+
+Zadania są przechowywane w pamięci **jednego procesu backendu**: maksymalnie
+4 aktywne i 32 przechowywane. Zakończone wyniki wygasają po 15 minutach;
+restart backendu je usuwa. Ta wersja wymaga pojedynczego procesu uvicorn
+(bez wielu workers); współdzielenie zadań między procesami wymaga osobnego magazynu/kolejki.
+
+
+### Czwarty kafelek: NASA ECOSTRESS LST
+
+Raport mapy zawiera także `ecostress` (`pending`, `ok` lub `unavailable`).
+Źródło działa niezależnie w tym samym zadaniu i korzysta z istniejącego
+`EARTHDATA_TOKEN` (dostęp LP DAAC). Produkt `ECO_L2T_LSTE.002` ma siatkę 70 m;
+raport pokazuje temperaturę powierzchni w °C, czas obserwacji UTC i flagę jakości.
+Jest to pojedynczy piksel dla punktu wewnątrz obrysu, nie średnia pola ani temperatura powietrza.
+
+Sprawdzane są maksymalnie 3 najnowsze sceny z okresu. Pobierane są LST, QC,
+maska chmur i maska wody, a odczyt odbywa się w osobnym wątku. Wartości
+NoData, zachmurzenie, woda i zła jakość są odrzucane. Łączny timeout źródła
+wynosi 60 sekund (z oczekiwaniem na cache), limit pliku 32 MB. Brak przelotu
+ISS, brak tokenu i błędy sieci powodują komunikat w tym kafelku, bez blokowania
+POWER, Sentinel-2 i SMAP. Stan raportu uwzględnia teraz cztery źródła (0/4–4/4).
+
+Specyfikacja: [ECOSTRESS L2 User Guide v002](https://lpdaac.usgs.gov/documents/1574/ECOL2_User_Guide_V2.pdf).

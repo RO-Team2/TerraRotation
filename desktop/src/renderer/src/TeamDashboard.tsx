@@ -444,8 +444,8 @@ export function TeamDashboard(): JSX.Element {
   const polygonPointsAttr = activeField.coordinates.map(([x, y]) => `${x},${y}`).join(' ');
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#0F172A] text-slate-100 select-none font-sans">
-      <header className="titlebar-drag flex h-12 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0B1120] px-4">
+    <div className="team-workspace flex flex-col overflow-hidden bg-[#0F172A] text-slate-100 select-none font-sans">
+      <header className="team-toolbar flex h-12 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0B1120] px-4">
         <div className="titlebar-no-drag flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
@@ -558,8 +558,8 @@ export function TeamDashboard(): JSX.Element {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="flex w-[320px] shrink-0 flex-col justify-between border-r border-slate-800 bg-[#1E293B]/75 p-4 backdrop-blur-md overflow-y-auto custom-scrollbar">
+      <div className="team-columns flex flex-1 overflow-hidden">
+        <aside className="team-sidebar team-sidebar-left flex w-[320px] shrink-0 flex-col justify-between border-r border-slate-800 bg-[#1E293B]/75 p-4 backdrop-blur-md overflow-y-auto custom-scrollbar">
           <div className="space-y-5">
             <div>
               <div className="mb-2.5 flex items-center justify-between">
@@ -681,6 +681,7 @@ export function TeamDashboard(): JSX.Element {
                     </div>
                     <input
                       type="range"
+                      aria-label={item.label}
                       min={0}
                       max={100}
                       step={5}
@@ -699,7 +700,7 @@ export function TeamDashboard(): JSX.Element {
             </div>
           </div>
 
-          <div className="mt-4 pt-2">
+          <div className="team-sidebar-actions mt-4 pt-2">
             <button
               onClick={handleGenerateRotation}
               disabled={isComputingRotation}
@@ -715,8 +716,8 @@ export function TeamDashboard(): JSX.Element {
           </div>
         </aside>
 
-        <main className="flex flex-1 flex-col overflow-hidden bg-[#0F172A]">
-          <section className="relative h-[60%] w-full border-b border-slate-800 tactical-grid overflow-hidden">
+        <main className="team-center flex flex-1 flex-col overflow-hidden bg-[#0F172A]">
+          <section className="team-map relative w-full border-b border-slate-800 tactical-grid overflow-hidden">
             <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-1 rounded-lg border border-slate-700/80 bg-[#0F172A]/90 p-1 backdrop-blur-md shadow-xl">
               <div className="flex items-center gap-1 px-2 text-[11px] font-semibold text-slate-400">
                 <Layers className="h-3.5 w-3.5 text-emerald-400" />
@@ -951,7 +952,7 @@ export function TeamDashboard(): JSX.Element {
             </div>
           </section>
 
-          <section className="flex h-[40%] flex-col justify-between bg-[#0B1120] p-4 overflow-y-auto custom-scrollbar">
+          <section className="team-rotations flex flex-col justify-between bg-[#0B1120] p-4 overflow-y-auto custom-scrollbar">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sprout className="h-4 w-4 text-emerald-400" />
@@ -975,7 +976,7 @@ export function TeamDashboard(): JSX.Element {
               </span>
             </div>
 
-            <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="team-rotation-grid grid flex-1 grid-cols-1 gap-3 md:grid-cols-4">
               {rotationPlan.map((step, index) => {
                 const yearLabel = 2027 + index;
                 const isNitrogenPositive = step.crop.nitrogenBalanceKgHa > 0;
@@ -1075,7 +1076,7 @@ export function TeamDashboard(): JSX.Element {
           </section>
         </main>
 
-        <aside className="flex w-[340px] shrink-0 flex-col justify-between border-l border-slate-800 bg-[#1E293B]/75 p-4 backdrop-blur-md overflow-y-auto custom-scrollbar">
+        <aside className="team-sidebar team-sidebar-right flex w-[340px] shrink-0 flex-col justify-between border-l border-slate-800 bg-[#1E293B]/75 p-4 backdrop-blur-md overflow-y-auto custom-scrollbar">
           <div className="space-y-4">
             <div>
               <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
@@ -1259,7 +1260,7 @@ export function TeamDashboard(): JSX.Element {
             </div>
           </div>
 
-          <div className="mt-4 space-y-2 pt-2">
+          <div className="team-sidebar-actions mt-4 space-y-2 pt-2">
             <button
               onClick={handleExportGeoJSON}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-sky-500/50 bg-sky-500/15 px-3 py-2.5 text-xs font-bold text-sky-300 transition hover:bg-sky-500/25"
