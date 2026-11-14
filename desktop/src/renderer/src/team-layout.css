@@ -1,4 +1,3 @@
-/* The workspace fills the space below app navigation. */
 .app-layout-team { height: calc(100dvh - 34px); display: flex; flex-direction: column; overflow: hidden; }
 .app-layout-team > .app-view-switch { top: 0; flex-shrink: 0; align-items: center; }
 .app-layout-team .team-dashboard-view { flex: 1; min-height: 0; overflow: hidden; }
