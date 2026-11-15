@@ -288,8 +288,6 @@ TERRAROTATION_CORS_ORIGINS='http://localhost:5173,http://192.168.1.20:5173' \
 ## 7. Team handoff
 
 The backend developer starts the server and shares the API address; the frontend developer uses `frontend-example/api.js`, `/docs`, and `/openapi.json`. Use `mode: "demo"` for visual development; check `mode: "live"` and error messages before presenting to the judges.
-# 2026-hackathon-nasa
-# 2026-hackathon-nasa
 
 ## Integrated analysis in the Map view
 
