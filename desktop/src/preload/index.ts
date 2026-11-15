@@ -4,30 +4,21 @@ function presentSatelliteError(error: unknown): Error {
   const message = error instanceof Error ? error.message : String(error);
   if (/COPERNICUS_CLIENT_ID|COPERNICUS_CLIENT_SECRET|Skonfiguruj.*Copernicus/i.test(message)) {
     return new Error([
-      'Nie skonfigurowano dostępu do analizy Sentinel-2. To osobne poświadczenia Copernicus Data Space — nie są potrzebne do wyświetlenia kafelków mapy.',
-      '1. Utwórz klienta OAuth w https://shapps.dataspace.copernicus.eu/dashboard/.',
-      '2. W terminalu backendu (WSL), w katalogu repozytorium, ustaw:',
-      '   export COPERNICUS_CLIENT_ID="TWÓJ_CLIENT_ID"',
-      '   export COPERNICUS_CLIENT_SECRET="TWÓJ_CLIENT_SECRET"',
-      '3. Uruchom ponownie uvicorn w tym samym terminalu. Nie wklejaj tych ID do kodu ani do repozytorium.',
-      'Jeśli nie masz klienta OAuth, korzystaj z płodozmianu NASA POWER/SoilGrids; przycisk analizy Sentinel-2 wymaga tych danych.',
+      'Sentinel-2 analysis access is not configured. It requires separate Copernicus Data Space credentials, which are not needed to display map tiles.',
+      '1. Create an OAuth client at https://shapps.dataspace.copernicus.eu/dashboard/.',
+      '2. In the backend terminal (WSL), from the repository directory, set:',
+      '   export COPERNICUS_CLIENT_ID="YOUR_CLIENT_ID"',
+      '   export COPERNICUS_CLIENT_SECRET="YOUR_CLIENT_SECRET"',
+      '3. Restart uvicorn in the same terminal. Do not paste these credentials into the code or repository.',
+      'Without an OAuth client, use NASA POWER/SoilGrids crop rotation planning; Sentinel-2 analysis requires these credentials.',
     ].join('\n'));
   }
   return new Error(message.replace(/^Error invoking remote method '[^']+':\s*/, ''));
 }
 
-const nasaApi = {
-  windowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.invoke('window:control', action),
-  syncNasaData: (fieldId: string) => ipcRenderer.invoke('nasa:sync-field', fieldId),
-  exportGeoJSON: (payload: unknown) => ipcRenderer.invoke('export:geojson', payload),
-  exportPDF: (payload?: unknown) => ipcRenderer.invoke('export:pdf', payload),
-};
-
 const terraApi = {
-  windowControl: nasaApi.windowControl,
-  syncField: nasaApi.syncNasaData,
-  exportGeoJson: nasaApi.exportGeoJSON,
-  exportPdf: (view?: 'analysis' | 'map') => nasaApi.exportPDF(view),
+  windowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.invoke('window:control', action),
+  exportPdf: (view?: 'analysis' | 'map') => ipcRenderer.invoke('export:pdf', view),
   satellite: async (payload: unknown) => {
     try { return await ipcRenderer.invoke('api:satellite', payload); }
     catch (error) { throw presentSatelliteError(error); }
@@ -42,5 +33,4 @@ const terraApi = {
   recommend: (payload: unknown) => ipcRenderer.invoke('api:recommend', payload),
 };
 
-contextBridge.exposeInMainWorld('nasaApi', nasaApi);
 contextBridge.exposeInMainWorld('terraApi', terraApi);

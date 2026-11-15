@@ -7,25 +7,25 @@ const SPLASH_DURATION_MS = 2200;
 
 const steps = [
   {
-    eyebrow: 'KROK 1 Z 3',
-    title: 'Poznaj swoje gospodarstwo',
-    description: 'Uzupełnij lokalny profil użytkownika: nazwę gospodarstwa, rolę i region. Profil można później edytować z przycisku w górnym pasku.',
+    eyebrow: 'STEP 1 OF 3',
+    title: 'Introduce your farm',
+    description: 'Complete your local profile with your farm name, role, and region. You can edit it later using the button in the top bar.',
     icon: Compass,
-    action: 'Otwórz profil później',
+    action: 'Set up profile later',
   },
   {
-    eyebrow: 'KROK 2 Z 3',
-    title: 'Uruchom backend',
-    description: 'Analiza płodozmianu wymaga uruchomionego API FastAPI. Uruchom je w terminalu WSL z katalogu repozytorium; aplikację desktopową uruchom w drugim terminalu.',
+    eyebrow: 'STEP 2 OF 3',
+    title: 'Start the backend',
+    description: 'Crop rotation analysis requires the FastAPI backend. Start it in a WSL terminal from the repository directory, then start the desktop app in a second terminal.',
     icon: Leaf,
-    action: 'Dalej',
+    action: 'Next',
   },
   {
-    eyebrow: 'KROK 3 Z 3',
-    title: 'Sentinel-2 jest opcjonalny',
-    description: 'Podkład mapy oraz płodozmian NASA POWER / SoilGrids działają niezależnie. Analiza NDVI Sentinel-2 wymaga OAuth Copernicus ustawionego wyłącznie w terminalu backendu. Nigdy nie zapisuj sekretu w aplikacji ani w repozytorium.',
+    eyebrow: 'STEP 3 OF 3',
+    title: 'Sentinel-2 is optional',
+    description: 'The basemap and NASA POWER / SoilGrids crop rotation analysis work independently. Sentinel-2 NDVI analysis requires Copernicus OAuth configured only in the backend terminal. Never store the secret in the app or repository.',
     icon: MapPin,
-    action: 'Rozpocznij pracę',
+    action: 'Get started',
   },
 ];
 
@@ -55,13 +55,13 @@ export default function StartupExperience({ children }: { children: ReactNode })
       {children}
     </div>
 
-    {splash && <section className="welcome-splash" aria-label="Witamy w TerraRotation">
+    {splash && <section className="welcome-splash" aria-label="Welcome to TerraRotation">
       <div className="welcome-orbit welcome-orbit-one" />
       <div className="welcome-orbit welcome-orbit-two" />
       <div className="welcome-content">
         <img className="welcome-logo" src="/terrarotation.svg" alt="TerraRotation" />
         <div className="welcome-rule"><span /></div>
-        <p>Inteligentne decyzje dla zdrowej gleby</p>
+        <p>Smart decisions for healthy soil</p>
         <div className="welcome-loading"><span /><span /><span /></div>
       </div>
       <span className="welcome-footer">NASA EARTH DATA · FIELD INTELLIGENCE</span>
@@ -69,19 +69,19 @@ export default function StartupExperience({ children }: { children: ReactNode })
 
     {tutorial && !splash && <div className="setup-backdrop">
       <section className="setup-dialog" role="dialog" aria-modal="true" aria-labelledby="setup-title">
-        <button className="setup-close" onClick={finishTutorial} aria-label="Pomiń samouczek"><X size={18} /></button>
+        <button className="setup-close" onClick={finishTutorial} aria-label="Skip tutorial"><X size={18} /></button>
         <img className="setup-logo" src="/terrarotation.svg" alt="TerraRotation" />
         <div className="setup-step-indicator">{steps.map((item, index) => <span key={item.eyebrow} className={index <= step ? 'complete' : ''} />)}</div>
         <div className="setup-copy" key={step}>
-          <span className="setup-eyebrow">{steps[step].eyebrow} · KONFIGURACJA</span>
+          <span className="setup-eyebrow">{steps[step].eyebrow} · SETUP</span>
           <div className="setup-icon"><CurrentIcon size={23} /></div>
           <h1 id="setup-title">{steps[step].title}</h1>
           <p>{steps[step].description}</p>
         </div>
-        <div className="setup-note"><Check size={15} /> Ustawienia są proste do zmiany i nie blokują rozpoczęcia pracy.</div>
+        <div className="setup-note"><Check size={15} /> You can change these settings easily and start working right away.</div>
         <footer className="setup-actions">
-          <button className="setup-skip" onClick={finishTutorial}>Pomiń samouczek</button>
-          {step > 0 && <button className="setup-back" onClick={() => setStep((current) => current-1)}><ChevronLeft size={16} /> Wstecz</button>}
+          <button className="setup-skip" onClick={finishTutorial}>Skip tutorial</button>
+          {step > 0 && <button className="setup-back" onClick={() => setStep((current) => current-1)}><ChevronLeft size={16} /> Back</button>}
           <button className="setup-next" onClick={() => step === steps.length-1 ? finishTutorial() : setStep((current) => current+1)}>
             {steps[step].action}<ArrowRight size={16} />
           </button>

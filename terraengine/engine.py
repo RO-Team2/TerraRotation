@@ -79,18 +79,18 @@ def dominates(a, b):
     return all((a[k] >= b[k] for k in keys)) and any((a[k] > b[k] for k in keys))
 
 def explain(rotation, soil, climate, m):
-    explanations = [f'Uprawy należą do różnych rodzin botanicznych; zachowano wymagane odstępy w {len(rotation)}-letnim planie.', 'Roczne wskaźniki azotu i materii organicznej są szacunkowe i nie przedstawiają rzeczywistych pomiarów gleby.']
+    explanations = [f'Crops belong to different botanical families; required intervals are maintained in the {len(rotation)}-year plan.', 'Yearly nitrogen and organic matter indices are estimates, not actual soil measurements.']
     if any((CROPS[c].family == 'fabaceae' for c in rotation)):
-        explanations.append('Plan uwzględnia roślinę strączkową; jej korzystny wpływ na glebę jest modelowany, a nie potwierdzony pomiarem wiązania azotu.')
+        explanations.append('The plan includes a legume; its soil benefit is modeled, not confirmed by nitrogen fixation measurements.')
     if soil.sand_pct is not None and soil.sand_pct > 65:
-        explanations.append(f'Uwzględniono udział piasku w glebie ({soil.sand_pct:.1f}%) przy ocenie dopasowania upraw.')
+        explanations.append(f'Soil sand content ({soil.sand_pct:.1f}%) was considered when assessing crop suitability.')
     if climate.climate_years:
-        explanations.append(f'Dopasowanie klimatyczne oparto na {climate.climate_years} pełnych latach danych historycznych, a nie na prognozie pogody.')
+        explanations.append(f'Climate suitability is based on {climate.climate_years} complete years of historical data, not a weather forecast.')
     if climate.dry_spell_max_days is not None:
-        explanations.append(f'Najdłuższy historyczny okres z opadem poniżej 1 mm/dzień: {climate.dry_spell_max_days} dni.')
+        explanations.append(f'Longest historical period with precipitation below 1 mm/day: {climate.dry_spell_max_days} days.')
     if climate.annual_rain_mm is None:
-        explanations.append('Brak danych o opadach; ocena dopasowania upraw jest obarczona większą niepewnością.')
-    explanations.append(f"Średnie dopasowanie agronomiczne: {m['fit']:.2f} w heurystycznej skali od 0 do 1.")
+        explanations.append('Precipitation data is missing; crop suitability assessment has greater uncertainty.')
+    explanations.append(f"Mean agronomic suitability: {m['fit']:.2f} on a heuristic scale from 0 to 1.")
     return explanations
 
 def recommend(req, soil, climate):

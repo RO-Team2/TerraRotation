@@ -11,20 +11,20 @@ def confidence_report(soil, climate, mode, requested_years):
     available = sum((getattr(soil, field) is not None for field in soil_fields))
     years = climate.climate_years or 0
     checks = {'real_data': mode == 'live' and (not soil.source.startswith('unavailable')) and (not climate.source.startswith('unavailable')), 'soil_coverage': available / len(soil_fields), 'climate_coverage': min(years / requested_years, 1.0), 'soil_layers': len(soil.layers), 'climate_years': years}
-    limitations = ['Ocena jakości danych, nie prawdopodobieństwo poprawności rekomendacji.']
+    limitations = ['Data quality assessment, not the probability that the recommendation is correct.']
     if mode == 'demo':
-        limitations.append('Dane demonstracyjne są syntetyczne lub przykładowe.')
+        limitations.append('Demo data is synthetic or illustrative.')
     if available < len(soil_fields):
-        limitations.append('Niekompletne parametry gleby.')
+        limitations.append('Incomplete soil parameters.')
     if years < requested_years:
-        limitations.append('Mniej pełnych lat klimatycznych niż zażądano.')
+        limitations.append('Fewer complete climate years than requested.')
     if soil.warnings or climate.warnings:
-        limitations.append('Źródła danych zgłosiły ostrzeżenia.')
+        limitations.append('Data sources reported warnings.')
     return {'checks': checks, 'limitations': limitations, 'validated_prediction': False}
 
 def stress_test(recommendations, soil, climate, scenario, history=()):
     if climate.annual_rain_mm is None or climate.avg_temp_c is None:
-        return {'method': 'heuristic_sensitivity_analysis', 'scenarios': [], 'warnings': ['Brak danych klimatycznych.']}
+        return {'method': 'heuristic_sensitivity_analysis', 'scenarios': [], 'warnings': ['No climate data.']}
     scenarios = []
     baseline = {tuple(plan['rotation']): plan['score'] for plan in recommendations}
     for name, (rain_factor, temperature_delta) in SCENARIOS.items():
@@ -43,4 +43,4 @@ def stress_test(recommendations, soil, climate, scenario, history=()):
         scores = [next((p['score'] for p in s['plans'] if p['rotation'] == rotation)) for s in scenarios]
         robustness.append({'rotation': rotation, 'worst_score': min(scores), 'best_score': max(scores), 'average_score': round(sum(scores) / len(scores), 5), 'range': round(max(scores) - min(scores), 5)})
     robustness.sort(key=lambda item: (-item['worst_score'], -item['average_score'], item['rotation']))
-    return {'method': 'heuristic_sensitivity_analysis', 'scenarios': scenarios, 'robustness': robustness, 'disclaimer': 'Hipotetyczne zmiany średnich warunków; nie są prognozą pogody, plonów ani dynamiki gleby.'}
+    return {'method': 'heuristic_sensitivity_analysis', 'scenarios': scenarios, 'robustness': robustness, 'disclaimer': 'Hypothetical changes in average conditions; not forecasts of weather, yields, or soil dynamics.'}

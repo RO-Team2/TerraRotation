@@ -1,15 +1,15 @@
 export const cropNames: Record<string, string> = {
-  pea: 'Groch',
-  rapeseed: 'Rzepak',
-  potato: 'Ziemniak',
-  rye: 'Żyto',
-  wheat: 'Pszenica',
-  barley: 'Jęczmień',
-  oats: 'Owies',
-  maize: 'Kukurydza',
-  soybean: 'Soja',
-  sunflower: 'Słonecznik',
-  sugar_beet: 'Burak cukrowy',
+  pea: 'Pea',
+  rapeseed: 'Rapeseed',
+  potato: 'Potato',
+  rye: 'Rye',
+  wheat: 'Wheat',
+  barley: 'Barley',
+  oats: 'Oats',
+  maize: 'Maize',
+  soybean: 'Soybean',
+  sunflower: 'Sunflower',
+  sugar_beet: 'Sugar beet',
 };
 
 export function cropName(id: string): string {

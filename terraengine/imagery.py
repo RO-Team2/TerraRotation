@@ -49,12 +49,12 @@ class FieldPolygon(BaseModel):
     def check_polygon(self):
         ring = self.coordinates[0]
         if not 4 <= len(ring) <= 101 or ring[0] != ring[-1]:
-            raise ValueError("Poligon musi mieć 3–100 wierzchołków i zamknięty pierścień.")
+            raise ValueError("The polygon must have 3–100 vertices and a closed ring.")
         if any(not (-180 <= lon <= 180 and -80 <= lat <= 84) for lon, lat in ring):
-            raise ValueError("Współrzędne poligonu są poza obsługiwanym zakresem.")
+            raise ValueError("Polygon coordinates are outside the supported range.")
         polygon = shape(self.model_dump())
         if not polygon.is_valid or polygon.area <= 0:
-            raise ValueError("Poligon jest nieprawidłowy: sprawdź przecinające się krawędzie.")
+            raise ValueError("Invalid polygon: check for intersecting edges.")
         return self
 
 
@@ -72,13 +72,13 @@ class SentinelFieldRequest(BaseModel):
     @model_validator(mode="after")
     def check_request(self):
         if self.geometry is None and (self.latitude is None or self.longitude is None):
-            raise ValueError("Podaj punkt (latitude i longitude) albo geometry Polygon.")
+            raise ValueError("Provide a point (latitude and longitude) or a Polygon geometry.")
         if self.geometry is not None and (self.latitude is not None or self.longitude is not None):
-            raise ValueError("Podaj punkt albo poligon, nie oba jednocześnie.")
+            raise ValueError("Provide either a point or a polygon, not both.")
         if self.end_date < self.start_date or (self.end_date - self.start_date).days > 30:
-            raise ValueError("Wybierz poprawny zakres obejmujący najwyżej 31 dni.")
+            raise ValueError("Choose a valid date range of up to 31 days.")
         if self.end_date > date.today():
-            raise ValueError("Nie można analizować przyszłych obserwacji.")
+            raise ValueError("Future observations cannot be analyzed.")
         return self
 
 
@@ -117,7 +117,7 @@ class CopernicusClient:
         client_id = os.getenv("COPERNICUS_CLIENT_ID", "")
         secret = os.getenv("COPERNICUS_CLIENT_SECRET", "")
         if not client_id or not secret:
-            raise HTTPException(503, "Skonfiguruj COPERNICUS_CLIENT_ID i COPERNICUS_CLIENT_SECRET na backendzie.")
+            raise HTTPException(503, "Configure COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET on the backend.")
         async with self._lock:
             credentials = (client_id, secret)
             if self._credentials == credentials and self._token and time.monotonic() < self._expires:
@@ -126,7 +126,7 @@ class CopernicusClient:
                 "grant_type": "client_credentials", "client_id": client_id, "client_secret": secret,
             })
             if response.status_code in (400, 401, 403):
-                raise HTTPException(503, "Copernicus odrzucił dane OAuth. Sprawdź konfigurację backendu.")
+                raise HTTPException(503, "Copernicus rejected the OAuth credentials. Check the backend configuration.")
             check_upstream(response)
             try:
                 body = response.json()
@@ -135,7 +135,7 @@ class CopernicusClient:
                 if not isinstance(token, str) or not token or not math.isfinite(lifetime) or lifetime <= 0:
                     raise ValueError
             except (ValueError, KeyError, TypeError) as exc:
-                raise HTTPException(502, "Nieprawidłowa odpowiedź uwierzytelniania Copernicus.") from exc
+                raise HTTPException(502, "Invalid Copernicus authentication response.") from exc
             self._token, self._credentials = token, credentials
             self._expires = time.monotonic() + max(0, lifetime - 30)
             return token
@@ -155,21 +155,21 @@ class CopernicusClient:
                     }, json=payload)
                 check_upstream(response)
                 if response.content[:4] not in (b"II*\x00", b"MM\x00*"):
-                    raise HTTPException(502, "Copernicus nie zwrócił rastra GeoTIFF.")
+                    raise HTTPException(502, "Copernicus did not return a GeoTIFF raster.")
                 return response.content
         except httpx.TimeoutException as exc:
-            raise HTTPException(504, "Przekroczono czas oczekiwania na Copernicus.") from exc
+            raise HTTPException(504, "Copernicus request timed out.") from exc
         except httpx.HTTPError as exc:
-            raise HTTPException(502, "Nie można połączyć się z Copernicus.") from exc
+            raise HTTPException(502, "Cannot connect to Copernicus.") from exc
 
 
 def check_upstream(response: httpx.Response):
     if response.status_code == 429:
-        raise HTTPException(429, "Osiągnięto limit Copernicus. Spróbuj później.", headers={"Retry-After": "60"})
+        raise HTTPException(429, "Copernicus rate limit reached. Try again later.", headers={"Retry-After": "60"})
     if response.status_code in (401, 403):
-        raise HTTPException(503, "Brak uprawnień Sentinel Hub. Sprawdź konto i klienta OAuth Copernicus.")
+        raise HTTPException(503, "Missing Sentinel Hub permissions. Check the Copernicus account and OAuth client.")
     if not response.is_success:
-        raise HTTPException(502, "Copernicus odrzucił pobranie danych Sentinel-2.")
+        raise HTTPException(502, "Copernicus rejected the Sentinel-2 data download.")
 
 
 copernicus = CopernicusClient()
@@ -199,11 +199,11 @@ def field_grid(req: SentinelFieldRequest):
         left, bottom = math.floor(left / 10) * 10, math.floor(bottom / 10) * 10
         size = math.ceil(max(right - left, top - bottom) / RESOLUTION)
         if size > 500:
-            raise HTTPException(422, "Obszar pola może mieć najwyżej 5 km rozpiętości.")
+            raise HTTPException(422, "The field area must span no more than 5 km.")
         bounds = (left, bottom, left + size * 10, bottom + size * 10)
     geographic = transform_bounds(crs, "EPSG:4326", *bounds)
     if geographic[0] >= geographic[2] or geographic[2] - geographic[0] > 1:
-        raise HTTPException(422, "Obszar nie może przecinać południka 180°.")
+        raise HTTPException(422, "The area must not cross the 180° meridian.")
     return crs, bounds, size
 
 
@@ -239,15 +239,15 @@ def render_result(raw: bytes, req: SentinelFieldRequest, crs: str, bounds: tuple
                 raise ValueError("unexpected raster grid")
             ndvi = src.read(1).astype("float32")
     except (rasterio.errors.RasterioError, ValueError) as exc:
-        raise HTTPException(502, "Nieprawidłowy raster lub siatka analityczna Copernicus.") from exc
+        raise HTTPException(502, "Invalid Copernicus raster or analysis grid.") from exc
     polygon = projected_polygon(req, crs)
     inside = (geometry_mask([polygon], out_shape=ndvi.shape, transform=grid, invert=True)
               if polygon is not None else np.ones(ndvi.shape, dtype=bool))
     if not inside.any():
-        raise HTTPException(422, "Pole jest zbyt małe: nie obejmuje środka żadnego piksela 10 m.")
+        raise HTTPException(422, "The field is too small: it contains no 10 m pixel centers.")
     valid = inside & np.isfinite(ndvi) & (ndvi >= -1) & (ndvi <= 1)
     if not valid.any():
-        raise HTTPException(404, "Brak ważnych pikseli Sentinel-2 w polu. Zmień daty lub limit chmur.")
+        raise HTTPException(404, "No valid Sentinel-2 pixels in the field. Change the dates or cloud coverage limit.")
     ndvi[~valid] = NODATA
     values = ndvi[valid]
     valid_percent = round(float(valid.sum() / inside.sum()) * 100, 2)
@@ -264,22 +264,22 @@ def render_result(raw: bytes, req: SentinelFieldRequest, crs: str, bounds: tuple
     geometry = FieldPolygon.model_validate(transform_geom(crs, "EPSG:4326", polygon))
     area_ha = shape(polygon).area / 10000
     warnings = [
-        "NDVI opisuje aktywność wegetacji; bez gatunku uprawy, fazy rozwoju i porównania w czasie nie diagnozuje kondycji ani plonu.",
-        "Mozaika leastCC może łączyć różne przeloty z wybranego zakresu dat.",
-        "Pasma B04/B08: 10 m; maska SCL: 20 m. Zachowane klasy 4, 5, 6 (roślinność, gleba, woda).",
-        "Daty podkładu zdjęciowego są niezależne od dat analizy Sentinel-2.",
+        "NDVI describes vegetation activity; without crop type, growth stage, and comparisons over time, it does not diagnose crop condition or yield.",
+        "The leastCC mosaic may combine different passes within the selected date range.",
+        "B04/B08 bands: 10 m; SCL mask: 20 m. Classes 4, 5, 6 retained (vegetation, soil, water).",
+        "Basemap imagery dates are independent of Sentinel-2 analysis dates.",
     ]
     if req.geometry is None:
-        warnings.append("Analiza punktu obejmuje kwadrat wokół współrzędnych, nie granice działki.")
+        warnings.append("Point analysis covers a square around the coordinates, not the field boundaries.")
     if valid_percent < 70:
-        warnings.append("Mniej niż 70% pikseli pola ma ważne dane; wynik może nie reprezentować całego pola.")
+        warnings.append("Fewer than 70% of field pixels have valid data; the result may not represent the entire field.")
     return SentinelFieldResponse(
         crs=crs, start_date=req.start_date, end_date=req.end_date, geometry=geometry,
         area_ha=round(area_ha, 4), geotiff=geotiff,
         stats=NdviStats(mean=float(values.mean()), min=float(values.min()), max=float(values.max()),
                         median=float(np.median(values)), valid_pixels=int(valid.sum()),
                         total_pixels=int(inside.sum()), valid_percent=valid_percent),
-        assessment="NDVI obliczone. Ocena agronomiczna wymaga kontekstu uprawy i danych z kolejnych terminów.",
+        assessment="NDVI calculated. Agronomic assessment requires crop context and observations from subsequent dates.",
         warnings=warnings,
     )
 

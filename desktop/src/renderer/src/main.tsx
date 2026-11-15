@@ -6,7 +6,6 @@ import StartupExperience from './StartupExperience';
 import './tailwind.css';
 import './styles.css';
 import './polish.css';
-import './team-layout.css';
 import './startup.css';
 import './print.css';
 

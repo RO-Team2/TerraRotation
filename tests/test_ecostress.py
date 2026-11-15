@@ -60,7 +60,7 @@ class EcostressFetchTests(unittest.IsolatedAsyncioTestCase):
     async def test_absent_iss_pass_returns_clear_empty_message(self):
         response = httpx.Response(200, json={'feed': {'entry': []}}, request=httpx.Request('GET', 'https://test'))
         with patch('terraengine.ecostress.httpx.AsyncClient.get', new=AsyncMock(return_value=response)):
-            with self.assertRaisesRegex(ValueError, 'Brak danych ECOSTRESS'):
+            with self.assertRaisesRegex(ValueError, 'No ECOSTRESS data'):
                 await ecostress(52.5, 16.5, date(2024,6,1), date(2024,6,15))
 
     async def test_timeout_is_bounded_and_safe(self):

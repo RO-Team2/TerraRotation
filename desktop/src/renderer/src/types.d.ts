@@ -2,16 +2,8 @@ export {};
 
 declare global {
   interface Window {
-    nasaApi: {
-      windowControl: (action: 'minimize' | 'maximize' | 'close') => Promise<void>;
-      syncNasaData: (fieldId: string) => Promise<{ metrics: Record<string, unknown>; fromCache: boolean }>;
-      exportGeoJSON: (payload: unknown) => Promise<{ savedPath?: string }>;
-      exportPDF: (payload?: unknown) => Promise<{ savedPath?: string }>;
-    };
     terraApi: {
       windowControl: (action: 'minimize' | 'maximize' | 'close') => Promise<void>;
-      syncField: (fieldId: string) => Promise<{ metrics: Record<string, unknown>; fromCache: boolean }>;
-      exportGeoJson: (payload: unknown) => Promise<{ savedPath?: string }>;
       exportPdf: (view?: 'analysis' | 'map') => Promise<{ savedPath?: string }>;
       health: () => Promise<{ status: string; service?: string; version?: string }>;
       config: () => Promise<ApiConfig>;

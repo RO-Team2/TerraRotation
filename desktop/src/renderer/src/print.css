@@ -9,7 +9,7 @@
   *, *::before, *::after { animation: none !important; transition: none !important; box-shadow: none !important; text-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body, #root, .app-layout, .app-shell, .main-content { width: auto !important; min-width: 0 !important; max-width: none !important; height: auto !important; min-height: 0 !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; background: white !important; }
   body { font-family: Arial, sans-serif; font-size: 10pt; color: #20291f; }
-  [hidden], [data-no-print], .window-bar, .app-view-switch, .sidebar, .topbar, .intro, .form-panel, .map-panel, .analysis-progress, .empty-state, button, .text-button, .analytical-download, .team-toolbar, .team-sidebar-actions, .live-team-stats, .main-content > footer { display: none !important; }
+  [hidden], [data-no-print], .window-bar, .app-view-switch, .sidebar, .topbar, .intro, .form-panel, .map-panel, .analysis-progress, .empty-state, button, .text-button, .analytical-download, .main-content > footer { display: none !important; }
   .workspace, .results-column { display: block !important; width: auto !important; min-width: 0 !important; min-height: 0 !important; overflow: visible !important; }
   .pdf-only { display: block !important; }
   .pdf-report-header { border-bottom: 2px solid #254b38; padding-bottom: 2mm; margin-bottom: 3mm; break-inside: avoid; }
@@ -57,8 +57,4 @@
   [data-pdf-report="map"] .map-report-limits { font-size: 8pt; line-height: 1.45; }
   [data-pdf-report="map"] .ndvi-stats { break-inside: avoid; }
 
-  /* Preserve the existing team export without its fixed-height screen shell. */
-  .pdf-team .team-workspace, .pdf-team .team-columns, .pdf-team .team-center, .pdf-team .team-sidebar, .pdf-team .team-rotations { display: block !important; width: auto !important; height: auto !important; max-height: none !important; overflow: visible !important; background: #fff !important; color: #172234; }
-  .pdf-team .team-map { height: 85mm; min-height: 0; }
-  .pdf-team .team-rotation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

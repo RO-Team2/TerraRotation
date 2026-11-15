@@ -47,9 +47,9 @@ class MapResponse(BaseModel):
 def interpret(weather, satellite, moisture, end_date, thermal=None):
     findings = []
     warnings = [
-        'Ocena heurystyczna, bez znajomości uprawy, fazy rozwojowej i tekstury gleby; progi nie są skalibrowane lokalnie.',
-        'POWER opisuje pogodę historyczną w siatce regionalnej. SMAP opisuje powierzchniowe 0–5 cm gleby w siatce 36 km; nie wilgotność strefy korzeniowej działki.',
-        'NDVI jest kompozycją wybranego okresu, a nie szeregiem czasowym; sam niski NDVI nie dowodzi stresu ani niedoboru azotu.',
+        'Heuristic assessment without crop, growth stage, or soil texture context; thresholds are not locally calibrated.',
+        'POWER describes historical weather on a regional grid. SMAP describes the top 0–5 cm of soil on a 36 km grid, not field root-zone moisture.',
+        'NDVI is a composite of the selected period, not a time series; low NDVI alone does not demonstrate stress or nitrogen deficiency.',
     ]
     def add(code, severity, title, evidence, action):
         findings.append(Finding(code=code, severity=severity, title=title, evidence=evidence, action=action))
@@ -58,54 +58,54 @@ def interpret(weather, satellite, moisture, end_date, thermal=None):
     ndvi_ok = s is not None and s['stats']['valid_percent'] >= 70
     moisture_ok = m is not None and 0 <= (end_date - date.fromisoformat(m['observation_date'])).days <= 7
     if w and not weather_ok:
-        warnings.append('POWER: mniej niż 80% pełnych dni; suma opadów jest niepełna, pominięto wnioskowanie o bilansie wodnym.')
+        warnings.append('POWER: fewer than 80% complete days; precipitation totals are incomplete, so water balance inference was skipped.')
     if s and not ndvi_ok:
-        warnings.append('Sentinel-2: mniej niż 70% ważnych pikseli; pominięto łączenie NDVI z oceną stresu.')
+        warnings.append('Sentinel-2: fewer than 70% valid pixels; NDVI was excluded from stress assessment.')
     if m and not moisture_ok:
-        warnings.append('SMAP: pomiar starszy niż 7 dni względem końca okresu; pominięto łączenie z pogodą i NDVI.')
+        warnings.append('SMAP: observation more than 7 days before the period end; excluded from combined weather and NDVI assessment.')
     if weather_ok:
-        evidence = [f"Opady: {w['rain_mm']} mm / {w['valid_days']} pełnych dni", f"Najdłuższy ciąg dni <1 mm: {w['longest_dry_spell_days']}"]
+        evidence = [f"Precipitation: {w['rain_mm']} mm / {w['valid_days']} complete days", f"Longest run of days <1 mm: {w['longest_dry_spell_days']}"]
         if w['longest_dry_spell_days'] >= 7:
-            add('dry_spell', 'watch', 'Okres bez istotnych opadów', evidence,
-                'Sprawdź wilgotność w strefie korzeniowej i objawy więdnięcia; nie ustalaj dawki nawodnienia wyłącznie z tych danych.')
+            add('dry_spell', 'watch', 'Period without significant precipitation', evidence,
+                'Check root-zone moisture and signs of wilting; do not determine irrigation rates from these data alone.')
         if w['hot_days']:
-            add('heat', 'watch', 'Występowały dni gorące', [f"Tmax ≥30°C: {w['hot_days']} dni"],
-                'Porównaj daty upałów z fazą rozwojową uprawy; sprawdź objawy stresu cieplnego.')
+            add('heat', 'watch', 'Hot days recorded', [f"Tmax ≥30°C: {w['hot_days']} days"],
+                'Compare heat event dates with the crop growth stage; check for heat stress symptoms.')
         if w['frost_days']:
-            add('frost', 'watch', 'Występowały przymrozki w danych POWER', [f"Tmin <0°C: {w['frost_days']} dni"],
-                'Sprawdź wrażliwe uprawy w terenie; temperatura przy gruncie może różnić się od temperatury na 2 m.')
+            add('frost', 'watch', 'Frost recorded in POWER data', [f"Tmin <0°C: {w['frost_days']} days"],
+                'Inspect sensitive crops in the field; ground-level temperatures may differ from temperatures at 2 m.')
         heavy = [r for r in w['daily'] if r['PRECTOTCORR'] is not None and r['PRECTOTCORR'] >= 25]
         if heavy:
-            add('heavy_rain', 'watch', 'Epizody intensywnych opadów', [f"Dni z opadem ≥25 mm: {len(heavy)}"],
-                'Skontroluj zastoiska i ślady spływu, szczególnie na stokach; brak danych o nachyleniu i infiltracji uniemożliwia obliczenie erozji.')
+            add('heavy_rain', 'watch', 'Heavy rainfall events', [f"Days with precipitation ≥25 mm: {len(heavy)}"],
+                'Check for ponding and runoff, especially on slopes; erosion cannot be calculated without slope and infiltration data.')
     if ndvi_ok:
         stats = s['stats']
         if stats['mean'] < 0.3:
-            add('sparse_cover', 'info', 'Niska aktywność lub niewielkie pokrycie roślinnością',
-                [f"Średni NDVI: {stats['mean']:.3f}", f"Ważne piksele: {stats['valid_percent']}%"],
-                'Porównaj z terminem siewu, zbiorem i fazą uprawy. Gleba odsłonięta, woda lub spoczynek sezonowy mogą wyjaśniać wynik.')
+            add('sparse_cover', 'info', 'Low vegetation activity or sparse cover',
+                [f"Mean NDVI: {stats['mean']:.3f}", f"Valid pixels: {stats['valid_percent']}%"],
+                'Compare with sowing and harvest dates and crop stage. Bare soil, water, or seasonal dormancy may explain the result.')
         if stats['max'] - stats['min'] > 0.5:
-            add('heterogeneity', 'info', 'Duża rozpiętość NDVI w obszarze',
+            add('heterogeneity', 'info', 'Wide NDVI range within the area',
                 [f"NDVI min–max: {stats['min']:.3f}–{stats['max']:.3f}"],
-                'Sprawdź granice pola i strefy odmiennej roślinności; zakres min–max jest wrażliwy na pojedyncze piksele.')
+                'Check field boundaries and zones with different vegetation; the min–max range is sensitive to individual pixels.')
     if weather_ok and moisture_ok:
         dry = w['longest_dry_spell_days'] >= 7
         value = m['surface_moisture_m3_m3']
-        evidence = [f"SMAP: {m['surface_moisture_percent']}% objętościowo ({m['observation_date']})",
-                    f"POWER: maks. {w['longest_dry_spell_days']} kolejnych dni <1 mm"]
+        evidence = [f"SMAP: {m['surface_moisture_percent']}% by volume ({m['observation_date']})",
+                    f"POWER: maks. {w['longest_dry_spell_days']} kolejnych days <1 mm"]
         if dry and value < 0.15:
             if ndvi_ok:
                 evidence.append(f"NDVI: {s['stats']['mean']:.3f}")
-            add('combined_water_stress', 'watch', 'Zbieżne sygnały możliwego niedoboru wody', evidence,
-                'Nadaj priorytet lustracji i pomiarowi wilgotności w profilu glebowym. Niski NDVI, jeśli występuje, wymaga potwierdzenia aktywnej uprawy.')
+            add('combined_water_stress', 'watch', 'Converging signs of possible water shortage', evidence,
+                'Prioritize field inspection and soil profile moisture measurements. If NDVI is low, confirm that an active crop is present.')
         elif dry and value >= 0.3:
-            add('mixed_water_signals', 'info', 'Rozbieżne sygnały pogody i wilgotności powierzchni', evidence,
-                'Sprawdź datę przelotu, lokalne opady i nawadnianie; regionalny piksel SMAP może obejmować inne warunki niż pole.')
+            add('mixed_water_signals', 'info', 'Conflicting weather and surface moisture signals', evidence,
+                'Check the satellite pass date, local precipitation, and irrigation; the regional SMAP pixel may represent conditions different from the field.')
     if not findings:
         available_sources = (weather, satellite, moisture) + ((thermal,) if thermal is not None else ())
-        add('limited_assessment', 'info', 'Brak jednoznacznego sygnału w dostępnych danych',
-            [f"Dostępne źródła: {sum(x.status == 'ok' for x in available_sources)}/{len(available_sources)}"],
-            'Brak alertu nie potwierdza dobrego stanu uprawy. Porównaj kolejne terminy i obserwacje terenowe.')
+        add('limited_assessment', 'info', 'No clear signal in the available data',
+            [f"Available sources: {sum(x.status == 'ok' for x in available_sources)}/{len(available_sources)}"],
+            'The absence of an alert does not confirm good crop condition. Compare subsequent dates and field observations.')
     return findings, warnings
 
 
@@ -120,9 +120,9 @@ async def collect(name, operation):
     except ValueError as exc:
         return SourceResult(status='unavailable', message=str(exc))
     except (TimeoutError, httpx.TimeoutException):
-        return SourceResult(status='unavailable', message=f'{name}: przekroczono czas pobierania danych.')
+        return SourceResult(status='unavailable', message=f'{name}: data retrieval timed out.')
     except Exception:
-        return SourceResult(status='unavailable', message=f'{name}: źródło jest niedostępne lub zwróciło niepoprawne dane.')
+        return SourceResult(status='unavailable', message=f'{name}: source is unavailable or returned invalid data.')
 
 
 @router.post('/analyze', response_model=MapResponse)
@@ -190,13 +190,13 @@ async def run_job(entry):
         entry['status'] = 'cancelled'
         for key, value in entry['sources'].items():
             if value.status == 'pending':
-                entry['sources'][key] = SourceResult(status='unavailable', message='Pobieranie anulowane.')
+                entry['sources'][key] = SourceResult(status='unavailable', message='Retrieval cancelled.')
         raise
     except Exception:
         entry['status'] = 'failed'
         for key, value in entry['sources'].items():
             if value.status == 'pending':
-                entry['sources'][key] = SourceResult(status='unavailable', message='Zadanie przerwane; ponów analizę.')
+                entry['sources'][key] = SourceResult(status='unavailable', message='Job interrupted; retry the analysis.')
     finally:
         entry['finished_at'] = time.monotonic()
 
@@ -213,7 +213,7 @@ async def start_map_job(req: SentinelFieldRequest):
     field_grid(req)
     prune_jobs()
     if sum(entry['status'] == 'running' for entry in _jobs.values()) >= MAX_RUNNING:
-        raise HTTPException(429, 'Trwają już 4 analizy mapy. Poczekaj na wynik lub anuluj poprzednią.')
+        raise HTTPException(429, '4 map analyses are already running. Wait for a result or cancel a previous analysis.')
     if len(_jobs) >= MAX_JOBS:
         oldest = min((entry for entry in _jobs.values() if entry['status'] != 'running'),
                      key=lambda entry: entry.get('finished_at', 0))
@@ -225,7 +225,7 @@ async def start_map_job(req: SentinelFieldRequest):
         lat, lon = req.latitude, req.longitude
     job_id = secrets.token_urlsafe(24)
     entry = {'id': job_id, 'status': 'running', 'request': req, 'lat': lat, 'lon': lon,
-             'sources': {key: SourceResult(status='pending', message='Pobieranie danych…')
+             'sources': {key: SourceResult(status='pending', message='Fetching data…')
                          for key in ('power', 'sentinel', 'smap', 'ecostress')}}
     _jobs[job_id] = entry
     entry['task'] = asyncio.create_task(run_job(entry))
@@ -235,7 +235,7 @@ async def start_map_job(req: SentinelFieldRequest):
 def get_job(job_id):
     prune_jobs()
     if job_id not in _jobs:
-        raise HTTPException(404, 'Zadanie wygasło lub backend został uruchomiony ponownie. Uruchom analizę ponownie.')
+        raise HTTPException(404, 'The job expired or the backend restarted. Run the analysis again.')
     return _jobs[job_id]
 
 
@@ -259,5 +259,5 @@ async def cancel_map_job(job_id: str):
             entry['finished_at'] = time.monotonic()
             for key, source in entry['sources'].items():
                 if source.status == 'pending':
-                    entry['sources'][key] = SourceResult(status='unavailable', message='Pobieranie anulowane.')
+                    entry['sources'][key] = SourceResult(status='unavailable', message='Retrieval cancelled.')
     return job_snapshot(entry)

@@ -55,14 +55,14 @@ async def power(lat, lon, start, end):
             days.append(row)
         valid = [r for r in days if all(r[k] is not None for k in ('T2M', 'T2M_MIN', 'T2M_MAX', 'PRECTOTCORR'))]
         if not valid:
-            raise ValueError('Brak poprawnych obserwacji POWER w wybranym okresie.')
+            raise ValueError('No valid POWER observations in the selected period.')
         dry = longest = 0
         for row in days:
             dry = dry + 1 if row['PRECTOTCORR'] is not None and row['PRECTOTCORR'] < 1 else 0
             longest = max(longest, dry)
         return {'source': 'NASA POWER Daily / AG', 'source_url': POWER_URL,
                 'start_date': start.isoformat(), 'end_date': end.isoformat(),
-                'resolution': 'Siatka meteorologiczna ok. 0,5° × 0,625°; nie pomiar na działce',
+                'resolution': 'Weather grid approximately 0.5° × 0.625°; not a field measurement',
                 'days_requested': len(days), 'valid_days': len(valid),
                 'coverage_percent': round(100 * len(valid) / len(days), 1),
                 'mean_temp_c': round(sum(r['T2M'] for r in valid) / len(valid), 1),
@@ -84,23 +84,23 @@ async def download_granule(client, url, token):
             'd3h5e2j7riftk6.cloudfront.net',
         }
         if parsed.scheme != 'https' or not (nasa_host or signed_s3):
-            raise ValueError('Nieobsługiwany adres pliku SMAP; wymagany serwer NASA lub magazyn NSIDC.')
+            raise ValueError('Unsupported SMAP file URL; a NASA server or NSIDC store is required.')
         headers = {'Authorization': f'Bearer {token}'} if nasa_host else {}
         async with client.stream('GET', url, headers=headers) as response:
             if response.status_code in (301, 302, 303, 307, 308):
                 url = urljoin(url, response.headers['location'])
                 continue
             if response.status_code in (401, 403):
-                raise ValueError('SMAP: sprawdź EARTHDATA_TOKEN i zgodę na dostęp do danych NSIDC w Earthdata Login.')
+                raise ValueError('SMAP: check EARTHDATA_TOKEN and NSIDC data access authorization in Earthdata Login.')
             response.raise_for_status()
             chunks, size = [], 0
             async for chunk in response.aiter_bytes():
                 size += len(chunk)
                 if size > 64 * 1024 * 1024:
-                    raise ValueError('Plik SMAP przekracza limit 64 MB.')
+                    raise ValueError('SMAP file exceeds the 64 MB limit.')
                 chunks.append(chunk)
             return b''.join(chunks)
-    raise ValueError('Nie udało się uwierzytelnić pobierania SMAP.')
+    raise ValueError('Could not authenticate the SMAP download.')
 
 
 def read_smap(raw, lat, lon):
@@ -157,6 +157,6 @@ async def smap(lat, lon, start, end):
                             'depth_cm': '0–5', 'granule_id': granule['title'],
                             'observation_date': granule['time_start'][:10],
                             'source_url': 'https://nsidc.org/data/spl3smp/versions/9',
-                            'sampling': 'Najnowszy poprawny piksel z maksymalnie 3 ostatnich granuli okresu; nie średnia dla działki ani okresu.'}
-        raise ValueError('Brak poprawnego pomiaru SMAP w 3 ostatnich granulach okresu (m.in. lód, woda lub luka przelotu).')
+                            'sampling': 'Latest valid pixel from up to 3 recent granules in the period; not a field or period average.'}
+        raise ValueError('No valid SMAP observation in the 3 most recent granules of the period (e.g. ice, water, or a gap in coverage).')
     return await cached(('smap', lat, lon, start, end), fetch)

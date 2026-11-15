@@ -42,7 +42,7 @@ async def download(client, url, token):
         storage = parsed.hostname == trusted_redirect and parsed.hostname and (
             parsed.hostname.endswith('.cloudfront.net') or parsed.hostname.endswith('.amazonaws.com'))
         if parsed.scheme != 'https' or not (nasa or storage):
-            raise ValueError('ECOSTRESS: nieobsługiwany adres pobierania NASA.')
+            raise ValueError('ECOSTRESS: unsupported NASA download URL.')
         async with client.stream('GET', url, headers={'Authorization': f'Bearer {token}'} if nasa else {}) as response:
             if response.status_code in (301, 302, 303, 307, 308):
                 next_url = urljoin(url, response.headers.get('location', ''))
@@ -51,16 +51,16 @@ async def download(client, url, token):
                 url = next_url
                 continue
             if response.status_code in (401, 403):
-                raise ValueError('ECOSTRESS: sprawdź ważność EARTHDATA_TOKEN i zgodę LP DAAC w Earthdata Login.')
+                raise ValueError('ECOSTRESS: check EARTHDATA_TOKEN validity and LP DAAC authorization in Earthdata Login.')
             response.raise_for_status()
             chunks, size = [], 0
             async for chunk in response.aiter_bytes():
                 size += len(chunk)
                 if size > 32 * 1024 * 1024:
-                    raise ValueError('ECOSTRESS: plik przekracza limit 32 MB.')
+                    raise ValueError('ECOSTRESS: file exceeds the 32 MB limit.')
                 chunks.append(chunk)
             return b''.join(chunks)
-    raise ValueError('ECOSTRESS: nie udało się pobrać pliku po przekierowaniach.')
+    raise ValueError('ECOSTRESS: could not download the file after redirects.')
 
 
 def read_pixel(files, lat, lon):
@@ -98,7 +98,7 @@ def read_pixel(files, lat, lon):
             return None
         return {'lst_c': round(kelvin - 273.15, 2), 'lst_kelvin': round(kelvin, 2),
                 'quality_flag': qc, 'resolution_m': 70,
-                'sampling': 'Pojedynczy bezchmurny piksel lądowy dla punktu; nie średnia pola ani temperatura powietrza.'}
+                'sampling': 'A single cloud-free land pixel at the point; not a field average or air temperature.'}
 
 
 async def ecostress(lat, lon, start, end):
@@ -124,9 +124,9 @@ async def ecostress(lat, lon, start, end):
                     return {**result, 'source': f'NASA ECOSTRESS {PRODUCT} v{VERSION}',
                             'observation_time': granule['time_start'], 'granule_id': granule['title'],
                             'source_url': 'https://doi.org/10.5067/ECOSTRESS/ECO_L2T_LSTE.002'}
-        raise ValueError('Brak danych ECOSTRESS dla punktu i okresu: brak przelotu ISS, zachmurzenie lub brak poprawnego piksela w 3 ostatnich scenach.')
+        raise ValueError('No ECOSTRESS data for the point and period: no ISS pass, cloud cover, or no valid pixel in the 3 most recent scenes.')
     try:
         async with asyncio.timeout(TIMEOUT_SECONDS):
             return await cached(('ecostress', lat, lon, start, end), fetch)
     except (TimeoutError, httpx.TimeoutException) as exc:
-        raise ValueError('ECOSTRESS: przekroczono czas pobierania (60 s). Pozostałe źródła są dostępne niezależnie.') from exc
+        raise ValueError('ECOSTRESS: download timed out (60 s). Other sources remain independently available.') from exc

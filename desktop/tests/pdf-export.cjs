@@ -88,18 +88,18 @@ app.whenReady().then(async () => {
     await waitFor(win, `document.querySelector('[data-pdf-report="analysis"]').dataset.pdfReady === 'true'`);
     const analysis = await capture(win, 'analysis');
     const analysisText = await verifyPdf('analysis', analysis,
-      ['Plan zmianowania', 'SoilGrids TEST', 'NASA POWER TEST', 'ROK 4', 'Inne warianty', 'ANALYSIS_END'],
-      ['NASA SMAP', 'NASA ECOSTRESS', 'Ustawienia pola', 'Eksportuj do PDF']);
+      ['Crop rotation plan', 'SoilGrids TEST', 'NASA POWER TEST', 'YEAR 4', 'Other options', 'ANALYSIS_END'],
+      ['NASA SMAP', 'NASA ECOSTRESS', 'Field settings', 'Export to PDF']);
     assert(analysisText.includes('92%'), 'Fit chart percentage is missing');
-    await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Mapa')).click()`);
+    await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Map')).click()`);
     await win.webContents.executeJavaScript(`document.querySelector('.field-selection').closest('form').requestSubmit()`);
     await waitFor(win, `document.querySelector('[data-pdf-report="map"]').dataset.pdfReady === 'true'`);
     const map = await capture(win, 'map');
-    await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Analiza pola')).click()`);
+    await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Field analysis')).click()`);
     await assert.rejects(capture(win, 'map'));
     const mapText = await verifyPdf('map', map,
-      ['Raport satelitarny', 'NASA POWER', 'Sentinel-2', 'NASA SMAP', 'NASA ECOSTRESS', 'ECOSTRESS_EMPTY', 'FIELD_CHECK_11', 'LIMITS_END', 'NDVI_END'],
-      ['Plan zmianowania', 'Wybierz pole', 'Eksportuj do PDF', 'Zdjęcia terenu', 'ANALYSIS_END']);
+      ['Satellite and agronomic report', 'NASA POWER', 'Sentinel-2', 'NASA SMAP', 'NASA ECOSTRESS', 'ECOSTRESS_EMPTY', 'FIELD_CHECK_11', 'LIMITS_END', 'NDVI_END'],
+      ['Crop rotation plan', 'Select field', 'Export to PDF', 'Terrain imagery', 'ANALYSIS_END']);
     assert(mapText.split('\f').length > 2, 'Long report must paginate');
     const { dialog } = require('electron');
     const originalDialog = dialog.showSaveDialog;
@@ -107,7 +107,7 @@ app.whenReady().then(async () => {
       dialog.showSaveDialog = async () => ({ canceled: true });
       assert.deepEqual(await savePdfReportDialog(win, 'analysis'), {});
       dialog.showSaveDialog = async () => {
-        await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Mapa')).click()`);
+        await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('.nav-item')).find(button => button.textContent.includes('Map')).click()`);
         return { canceled: false, filePath: path.join(output, 'saved-plan') };
       };
       const saved = await savePdfReportDialog(win, 'analysis');

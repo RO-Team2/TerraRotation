@@ -58,7 +58,7 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
     imagery.on('loading', () => { tileFailures = 0; setTileError(false); });
     imagery.on('tileerror', () => { tileFailures += 1; setTileError(true); });
     imagery.on('load', () => setTileError(tileFailures > 0));
-    L.control.layers({ 'Zdjęcia terenu · Esri': hybrid, 'Mapa drogowa · OSM': streets }).addTo(instance);
+    L.control.layers({ 'Terrain imagery · Esri': hybrid, 'Road map · OSM': streets }).addTo(instance);
     selection.current = L.layerGroup().addTo(instance);
     instance.on('click', (event: L.LeafletMouseEvent) => {
       const lat = event.latlng.lat, lon = L.Util.wrapNum(event.latlng.lng, [-180, 180]);
@@ -128,12 +128,12 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
     if (busy.current) return;
     setError('');
     if (startDate > endDate || (Date.parse(endDate) - Date.parse(startDate)) / 86400000 > 30) {
-      setError('Wybierz poprawny zakres obejmujący maksymalnie 31 dni.'); return;
+      setError('Choose a valid date range of up to 31 days.'); return;
     }
     const common = { start_date: startDate, end_date: endDate, max_cloud_coverage: clouds, include_geotiff: includeGeotiff };
     let request: SatelliteRequest;
     if (mode === 'polygon') {
-      if (isDrawing || vertices.length < 3) { setError('Zaznacz przynajmniej 3 wierzchołki i zakończ obrys.'); return; }
+      if (isDrawing || vertices.length < 3) { setError('Mark at least 3 vertices and finish the outline.'); return; }
       const ring = vertices.map(([lat, lon]) => [lon, lat] as Point);
       request = { ...common, geometry: { type: 'Polygon', coordinates: [[...ring, ring[0]]] } };
     } else request = { ...common, latitude: Number(latitude), longitude: Number(longitude), radius_m: radius };
@@ -149,7 +149,7 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
     }
     catch (reason) {
       if (requestVersion.current === version) {
-        setError(reason instanceof Error ? reason.message : 'Nie udało się uruchomić analizy.');
+        setError(reason instanceof Error ? reason.message : 'Could not start analysis.');
         busy.current = false; setLoading(false);
       }
     }
@@ -164,7 +164,7 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
         const job = await window.terraApi.mapJobCancel(id);
         if (keepResult && requestVersion.current === version) setResult(job.result);
       } catch (reason) {
-        if (keepResult && requestVersion.current === version) setError(reason instanceof Error ? reason.message : 'Nie udało się anulować zadania.');
+        if (keepResult && requestVersion.current === version) setError(reason instanceof Error ? reason.message : 'Could not cancel the job.');
       }
     }
   }
@@ -187,7 +187,7 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
         if (disposed) return;
         failures += 1;
         if (failures >= 3) {
-          setError(reason instanceof Error ? reason.message : 'Utracono połączenie z zadaniem.');
+          setError(reason instanceof Error ? reason.message : 'Lost connection to the job.');
           void cancelAnalysis(false);
           return;
         }
@@ -220,113 +220,113 @@ export default function MapView({ active, onSelect }: { active: boolean; onSelec
   };
 
   return <>
-    <section className="intro"><div><h2>Wskaż pole. Połącz pogodę, roślinność i wodę.</h2><p>Zdjęcia terenu pomagają wybrać działkę. Kliknięcie punktu lub zakończenie obrysu uruchamia raport POWER, Sentinel-2, SMAP i ECOSTRESS.</p></div><div className="intro-icon">◎</div></section>
+    <section className="intro"><div><h2>Select a field. Connect weather, vegetation, and water.</h2><p>Use the imagery to select a field. Click a point or finish an outline to start a POWER, Sentinel-2, SMAP, and ECOSTRESS report.</p></div><div className="intro-icon">◎</div></section>
     <div className="workspace sentinel-workspace">
       <section className="panel form-panel">
-        <div className="panel-heading"><div className="step-number">01</div><div><h3>Wybierz pole</h3><p>Punkt lub obrys działki</p></div></div>
+        <div className="panel-heading"><div className="step-number">01</div><div><h3>Select field</h3><p>Point or field outline</p></div></div>
         <form onSubmit={analyze}>
           <fieldset className="field-selection">
-            <div className="map-view-switch" role="group" aria-label="Wybór obszaru">
-              <button type="button" aria-pressed={mode === 'point'} onClick={() => chooseMode('point')}>Punkt i otoczenie</button>
-              <button type="button" aria-pressed={mode === 'polygon'} onClick={() => chooseMode('polygon')}>Obrysuj pole</button>
+            <div className="map-view-switch" role="group" aria-label="Area selection">
+              <button type="button" aria-pressed={mode === 'point'} onClick={() => chooseMode('point')}>Point and surroundings</button>
+              <button type="button" aria-pressed={mode === 'polygon'} onClick={() => chooseMode('polygon')}>Outline field</button>
             </div>
             {mode === 'point' ? <>
               <div className="coordinate-grid">
-                <label>Szerokość geograficzna<input required type="number" step="any" min="-79" max="83" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
-                <label>Długość geograficzna<input required type="number" step="any" min="-179.9" max="179.9" value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
+                <label>Latitude<input required type="number" step="any" min="-79" max="83" value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
+                <label>Longitude<input required type="number" step="any" min="-179.9" max="179.9" value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
               </div>
-              <button type="button" className="text-button" disabled={!validPoint} onClick={() => map.current?.setView([Number(latitude), Number(longitude)], 17)}>Pokaż punkt na mapie</button>
-              <label className="control-label">Zasięg analizy<select value={radius} onChange={e => setRadius(Number(e.target.value))}>{[100, 250, 500, 1000, 2500].map(value => <option key={value} value={value}>{2 * value} × {2 * value} m wokół punktu</option>)}</select></label>
+              <button type="button" className="text-button" disabled={!validPoint} onClick={() => map.current?.setView([Number(latitude), Number(longitude)], 17)}>Show point on map</button>
+              <label className="control-label">Analysis extent<select value={radius} onChange={e => setRadius(Number(e.target.value))}>{[100, 250, 500, 1000, 2500].map(value => <option key={value} value={value}>{2 * value} × {2 * value} m around the point</option>)}</select></label>
             </> : <>
-              <p className="map-caption">Klikaj kolejne narożniki działki na zdjęciu. Maksymalnie 100 wierzchołków i 5 km rozpiętości.</p>
-              <p role="status">{vertices.length} wierzchołków · {isDrawing ? (vertices.length >= 3 ? 'Kliknij „Zakończ obrys”, aby uruchomić analizę.' : 'Dodaj co najmniej 3 narożniki, następnie zakończ obrys.') : 'obrys gotowy'}</p>
+              <p className="map-caption">Click the field corners on the imagery. Maximum 100 vertices and a span of 5 km.</p>
+              <p role="status">{vertices.length} vertices · {isDrawing ? (vertices.length >= 3 ? 'Click “Finish outline” to start analysis.' : 'Add at least 3 corners, then finish the outline.') : 'outline ready'}</p>
               <div className="map-downloads">
-                <button type="button" className="text-button" disabled={!isDrawing || vertices.length < 3} onClick={finishPolygon}>Zakończ obrys</button>
-                <button type="button" className="text-button" disabled={!isDrawing || !vertices.length} onClick={() => setVertices(points => points.slice(0, -1))}>Cofnij punkt</button>
-                <button type="button" className="text-button" onClick={() => chooseMode('polygon')}>Narysuj ponownie</button>
+                <button type="button" className="text-button" disabled={!isDrawing || vertices.length < 3} onClick={finishPolygon}>Finish outline</button>
+                <button type="button" className="text-button" disabled={!isDrawing || !vertices.length} onClick={() => setVertices(points => points.slice(0, -1))}>Undo point</button>
+                <button type="button" className="text-button" onClick={() => chooseMode('polygon')}>Redraw</button>
               </div>
             </>}
             <div className="coordinate-grid">
-              <label className="control-label">Analiza od<input className="map-input" required type="date" value={startDate} max={endDate} onChange={e => setStartDate(e.target.value)} /></label>
-              <label className="control-label">Analiza do<input className="map-input" required type="date" value={endDate} min={startDate} max={isoDay(0)} onChange={e => setEndDate(e.target.value)} /></label>
+              <label className="control-label">Start date<input className="map-input" required type="date" value={startDate} max={endDate} onChange={e => setStartDate(e.target.value)} /></label>
+              <label className="control-label">End date<input className="map-input" required type="date" value={endDate} min={startDate} max={isoDay(0)} onChange={e => setEndDate(e.target.value)} /></label>
             </div>
-            <label className="control-label">Maksymalne zachmurzenie sceny<select value={clouds} onChange={e => setClouds(Number(e.target.value))}>{[10, 30, 50, 80, 100].map(value => <option key={value} value={value}>{value}%</option>)}</select></label>
-            <label className="geotiff-option"><input type="checkbox" checked={includeGeotiff} onChange={e => setIncludeGeotiff(e.target.checked)} /> Dołącz raster NDVI do pobrania</label>
+            <label className="control-label">Maximum scene cloud coverage<select value={clouds} onChange={e => setClouds(Number(e.target.value))}>{[10, 30, 50, 80, 100].map(value => <option key={value} value={value}>{value}%</option>)}</select></label>
+            <label className="geotiff-option"><input type="checkbox" checked={includeGeotiff} onChange={e => setIncludeGeotiff(e.target.checked)} /> Include downloadable NDVI raster</label>
             {mode === 'polygon' && isDrawing ? <button type="button" className="primary-button" disabled={vertices.length < 3} onClick={finishPolygon}>
-              {vertices.length < 3 ? `Zaznacz narożniki pola (${vertices.length}/3)` : 'Zakończ obrys i analizuj'}
-            </button> : <button type="submit" className="primary-button" disabled={loading || !ready}>{loading ? 'Analiza trwa w tle…' : 'Analizuj · POWER + NDVI + SMAP + LST'}</button>}
+              {vertices.length < 3 ? `Mark field corners (${vertices.length}/3)` : 'Finish outline and analyze'}
+            </button> : <button type="submit" className="primary-button" disabled={loading || !ready}>{loading ? 'Analysis running in background…' : 'Analyze · POWER + NDVI + SMAP + LST'}</button>}
             {loading && <div className="map-source-progress" role="status" aria-live="polite">
-              <strong>{jobId ? 'Analiza obrysu lub punktu w toku' : 'Uruchamianie zadania…'}</strong>
+              <strong>{jobId ? 'Analyzing outline or point' : 'Starting job…'}</strong>
               <ul>{(['power', 'sentinel', 'smap', 'ecostress'] as const).map(source => {
                 const status = result?.[source]?.status ?? 'pending';
                 const label = { power: 'NASA POWER', sentinel: 'Sentinel-2 NDVI', smap: 'NASA SMAP', ecostress: 'NASA ECOSTRESS' }[source];
-                return <li key={source} data-status={status}><span>{label}</span><b>{status === 'ok' ? 'Gotowe' : status === 'unavailable' ? 'Brak danych' : 'Pobieranie…'}</b></li>;
+                return <li key={source} data-status={status}><span>{label}</span><b>{status === 'ok' ? 'Ready' : status === 'unavailable' ? 'No data' : 'Fetching…'}</b></li>;
               })}</ul>
-              <p>SMAP pobiera plik satelitarny i może potrwać do około 100 s. Gotowe wyniki są już dostępne w raporcie poniżej mapy.</p>
-              <button type="button" className="text-button" onClick={() => void cancelAnalysis()}>Anuluj analizę</button>
+              <p>SMAP downloads a satellite file and may take about 100 seconds. Completed results are already available in the report below the map.</p>
+              <button type="button" className="text-button" onClick={() => void cancelAnalysis()}>Cancel analysis</button>
             </div>}
           </fieldset>
         </form>
-        <button className="text-button" disabled={!ready || loading} onClick={useLocation}>Użyj lokalizacji w analizie płodozmianu →</button>
+        <button className="text-button" disabled={!ready || loading} onClick={useLocation}>Use location for crop rotation analysis →</button>
         {error && <div className="alert error" role="alert">{error}</div>}
       </section>
       <section className="results-column" aria-busy={loading} data-pdf-report="map" data-pdf-ready={!!result && !loading && result.status !== 'running'}>
         <article className="panel map-panel">
-          <div className="result-heading"><h2>Zdjęcia terenu</h2><span className="result-status success">Podkład wizualny</span></div>
-          <div ref={container} className="leaflet-field-map" aria-label="Zdjęcia terenu. Kliknij punkt lub obrysuj granice pola." />
-          <p className="map-caption">Podkład Esri służy do wskazywania pola. Jego daty i szczegółowość są niezależne od analizy Sentinel-2. Przełącznik warstw w prawym górnym rogu udostępnia też mapę drogową.</p>
-          {tileError && <div className="alert warning" role="status">Nie udało się wczytać części zdjęć terenu. Sprawdź połączenie lub wybierz mapę drogową w przełączniku warstw.</div>}
+          <div className="result-heading"><h2>Terrain imagery</h2><span className="result-status success">Visual basemap</span></div>
+          <div ref={container} className="leaflet-field-map" aria-label="Terrain imagery. Click a point or outline field boundaries." />
+          <p className="map-caption">Use the Esri basemap to locate your field. Its dates and detail are independent of Sentinel-2 analysis. A road map is also available in the layer selector in the top right.</p>
+          {tileError && <div className="alert warning" role="status">Some imagery could not be loaded. Check your connection or select the road map in the layer selector.</div>}
         </article>
-        {loading && <div className="panel analysis-progress" role="status">Analiza działa w tle · gotowe źródła: {result ? [result.power, result.sentinel, result.smap, result.ecostress].filter(source => source && source.status !== 'pending').length : 0}/4. Wyniki pojawiają się na bieżąco. Możesz wskazać inne pole lub anulować pobieranie.</div>}
+        {loading && <div className="panel analysis-progress" role="status">Analysis running in background · completed sources: {result ? [result.power, result.sentinel, result.smap, result.ecostress].filter(source => source && source.status !== 'pending').length : 0}/4. Results appear as they arrive. You can select another field or cancel retrieval.</div>}
         {result && <article className="panel analysis-results map-integrated-report">
           <PdfExportButton view="map" disabled={loading || result.status === 'running'} />
-          <header className="pdf-only pdf-report-header"><span>TerraRotation · Mapa</span><h1>Raport satelitarny i agrotechniczny</h1>
-            <p>Okres: {result.start_date} – {result.end_date} · Punkt: {result.latitude.toFixed(5)}, {result.longitude.toFixed(5)}</p><p data-pdf-export-time />
+          <header className="pdf-only pdf-report-header"><span>TerraRotation · Map</span><h1>Satellite and agronomic report</h1>
+            <p>Period: {result.start_date} – {result.end_date} · Point: {result.latitude.toFixed(5)}, {result.longitude.toFixed(5)}</p><p data-pdf-export-time />
           </header>
-          <div className="result-heading"><h2>Raport agrotechniczny</h2><span className="result-status">{result.status === 'running' ? 'Analiza w toku' : result.status === 'ok' ? '4 źródła dostępne' : result.status === 'partial' ? 'Dane częściowe' : 'Brak danych'}</span></div>
-          <p className="map-caption">{result.start_date} – {result.end_date} · punkt odniesienia: {result.latitude.toFixed(5)}, {result.longitude.toFixed(5)}. POWER i SMAP są próbkowane dla punktu wewnątrz obrysu, NDVI dla całego obszaru.</p>
+          <div className="result-heading"><h2>Agronomic report</h2><span className="result-status">{result.status === 'running' ? 'Analysis in progress' : result.status === 'ok' ? '4 sources available' : result.status === 'partial' ? 'Partial data' : 'No data'}</span></div>
+          <p className="map-caption">{result.start_date} – {result.end_date} · reference point: {result.latitude.toFixed(5)}, {result.longitude.toFixed(5)}. POWER and SMAP sample a point inside the outline; NDVI covers the entire area.</p>
           <div className="map-source-grid">
-            <section className="map-source-card"><h3>NASA POWER · pogoda</h3>{result.power.data ? <>
-              <strong>{result.power.data.mean_temp_c}°C</strong><p>Średnia temperatura · opady {result.power.data.rain_mm} mm</p>
-              <p>Pełne dni: {result.power.data.valid_days}/{result.power.data.days_requested} ({result.power.data.coverage_percent}%)</p>
-              <p>Upały: {result.power.data.hot_days} dni · przymrozki: {result.power.data.frost_days} dni</p>
+            <section className="map-source-card"><h3>NASA POWER · weather</h3>{result.power.data ? <>
+              <strong>{result.power.data.mean_temp_c}°C</strong><p>Mean temperature · precipitation {result.power.data.rain_mm} mm</p>
+              <p>Complete days: {result.power.data.valid_days}/{result.power.data.days_requested} ({result.power.data.coverage_percent}%)</p>
+              <p>Heat: {result.power.data.hot_days} days · frost: {result.power.data.frost_days} days</p>
               <small>{result.power.data.resolution}</small>
             </> : <p role="status">{result.power.message}</p>}</section>
-            <section className="map-source-card"><h3>Sentinel-2 · roślinność</h3>{satellite ? <>
-              <strong>{satellite.stats.mean.toFixed(3)}</strong><p>Średni NDVI · ważne piksele: {satellite.stats.valid_percent}%</p><small>Siatka {satellite.resolution_m} m · kompozycja okresu</small>
+            <section className="map-source-card"><h3>Sentinel-2 · vegetation</h3>{satellite ? <>
+              <strong>{satellite.stats.mean.toFixed(3)}</strong><p>Mean NDVI · valid pixels: {satellite.stats.valid_percent}%</p><small>Grid {satellite.resolution_m} m · period composite</small>
             </> : <p role="status">{result.sentinel.message}</p>}</section>
-            <section className="map-source-card"><h3>NASA SMAP · woda w glebie</h3>{result.smap.data ? <>
-              <strong>{result.smap.data.surface_moisture_percent}%</strong><p>Objętościowa wilgotność powierzchniowa · {result.smap.data.observation_date} · {result.smap.data.orbit}</p>
-              <p>Siatka {result.smap.data.resolution_km} km · głębokość {result.smap.data.depth_cm} cm · flaga jakości {result.smap.data.quality_flag}</p>
-              <small>Środek piksela: {result.smap.data.pixel_latitude.toFixed(3)}, {result.smap.data.pixel_longitude.toFixed(3)} · odległość {result.smap.data.distance_to_pixel_center_km} km. {result.smap.data.sampling}</small>
+            <section className="map-source-card"><h3>NASA SMAP · soil moisture</h3>{result.smap.data ? <>
+              <strong>{result.smap.data.surface_moisture_percent}%</strong><p>Volumetric surface soil moisture · {result.smap.data.observation_date} · {result.smap.data.orbit}</p>
+              <p>Grid {result.smap.data.resolution_km} km · depth {result.smap.data.depth_cm} cm · quality flag {result.smap.data.quality_flag}</p>
+              <small>Pixel center: {result.smap.data.pixel_latitude.toFixed(3)}, {result.smap.data.pixel_longitude.toFixed(3)} · distance {result.smap.data.distance_to_pixel_center_km} km. {result.smap.data.sampling}</small>
             </> : <p role="status">{result.smap.message}</p>}</section>
-            <section className="map-source-card"><h3>NASA ECOSTRESS · temperatura LST</h3>{result.ecostress?.data ? <>
-              <strong>{result.ecostress.data.lst_c.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}°C</strong>
-              <p>Temperatura powierzchni ziemi · przelot ISS: {new Date(result.ecostress.data.observation_time).toLocaleString('pl-PL', { timeZone: 'UTC' })} UTC</p>
-              <p>Siatka {result.ecostress.data.resolution_m} m · flaga jakości {result.ecostress.data.quality_flag}</p>
+            <section className="map-source-card"><h3>NASA ECOSTRESS · LST temperature</h3>{result.ecostress?.data ? <>
+              <strong>{result.ecostress.data.lst_c.toLocaleString('en-GB', { maximumFractionDigits: 2 })}°C</strong>
+              <p>Land surface temperature · ISS pass: {new Date(result.ecostress.data.observation_time).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC</p>
+              <p>Grid {result.ecostress.data.resolution_m} m · quality flag {result.ecostress.data.quality_flag}</p>
               <small>{result.ecostress.data.sampling}</small>
-            </> : <p role="status">{result.ecostress?.message ?? (result.ecostress ? 'Pobieranie danych…' : 'Uruchom ponownie backend, aby włączyć ECOSTRESS.')}</p>}</section>
+            </> : <p role="status">{result.ecostress?.message ?? (result.ecostress ? 'Fetching data…' : 'Restart the backend to enable ECOSTRESS.')}</p>}</section>
           </div>
-          <h3>Interpretacja i zalecane sprawdzenia</h3>
+          <h3>Interpretation and recommended checks</h3>
           {result.findings.map(finding => <section key={finding.code} className={`map-finding ${finding.severity}`}>
             <h4>{finding.title}</h4><ul>{finding.evidence.map(evidence => <li key={evidence}>{evidence}</li>)}</ul><p>{finding.action}</p>
           </section>)}
-          <details className="map-report-limits"><summary>Metoda i ograniczenia interpretacji</summary><ul>{result.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul></details>
+          <details className="map-report-limits"><summary>Method and interpretation limitations</summary><ul>{result.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul></details>
         </article>}
         {satellite && <article className="panel analysis-results">
-          <div className="result-heading"><h2>Wyniki analizy pola</h2><span className="result-status success">Sentinel-2 L2A · {satellite.resolution_m} m</span></div>
-          <p className="map-caption">Okres analizy: {satellite.start_date} – {satellite.end_date} · powierzchnia: {satellite.area_ha.toFixed(2)} ha. Niebieska przerywana linia na mapie oznacza analizowany obszar.</p>
+          <div className="result-heading"><h2>Field analysis results</h2><span className="result-status success">Sentinel-2 L2A · {satellite.resolution_m} m</span></div>
+          <p className="map-caption">Analysis period: {satellite.start_date} – {satellite.end_date} · area: {satellite.area_ha.toFixed(2)} ha. The dashed blue line on the map marks the analyzed area.</p>
           <div className="stats-grid ndvi-stats">
-            <article className="stat-card"><span>ŚREDNI NDVI</span><strong>{satellite.stats.mean.toFixed(3)}</strong></article>
-            <article className="stat-card"><span>MEDIANA NDVI</span><strong>{satellite.stats.median.toFixed(3)}</strong></article>
-            <article className="stat-card"><span>WAŻNE PIKSELE</span><strong>{satellite.stats.valid_percent}%</strong></article>
+            <article className="stat-card"><span>MEAN NDVI</span><strong>{satellite.stats.mean.toFixed(3)}</strong></article>
+            <article className="stat-card"><span>MEDIAN NDVI</span><strong>{satellite.stats.median.toFixed(3)}</strong></article>
+            <article className="stat-card"><span>VALID PIXELS</span><strong>{satellite.stats.valid_percent}%</strong></article>
           </div>
-          <p className="map-caption">Zakres NDVI: {satellite.stats.min.toFixed(3)} do {satellite.stats.max.toFixed(3)} · {satellite.stats.valid_pixels} / {satellite.stats.total_pixels} pikseli obszaru.</p>
+          <p className="map-caption">NDVI range: {satellite.stats.min.toFixed(3)} to {satellite.stats.max.toFixed(3)} · {satellite.stats.valid_pixels} / {satellite.stats.total_pixels} area pixels.</p>
           <p>{satellite.assessment}</p>
           <button className="text-button" onClick={() => {
             const layer = L.geoJSON(satellite.geometry); map.current?.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 18 });
-          }}>Pokaż analizowany obszar</button>
-          {satellite.geotiff && <a className="text-button analytical-download" href={satellite.geotiff} download={`ndvi-${satellite.start_date}-${satellite.end_date}.tif`}>Pobierz analityczny GeoTIFF NDVI</a>}
+          }}>Show analyzed area</button>
+          {satellite.geotiff && <a className="text-button analytical-download" href={satellite.geotiff} download={`ndvi-${satellite.start_date}-${satellite.end_date}.tif`}>Download analytical NDVI GeoTIFF</a>}
           <div className="alert warning"><ul>{satellite.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul></div>
         </article>}
       </section>

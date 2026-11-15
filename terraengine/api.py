@@ -45,7 +45,7 @@ async def recommendation(req: FieldRequest):
         if soil.layers:
             soil = soil.model_copy(update={'layers': [layer.model_copy(update={key: value for key, value in updates.items() if key in ('ph', 'sand_pct', 'soc_g_kg')}) for layer in soil.layers]})
         soil = soil.model_copy(update=updates)
-        soil.warnings = [*soil.warnings, 'Zastosowano ręcznie podane parametry gleby.']
+        soil.warnings = [*soil.warnings, 'Manually supplied soil parameters were applied.']
     try:
         result = recommend(req, soil, climate)
     except ValueError as exc:
@@ -55,12 +55,12 @@ async def recommendation(req: FieldRequest):
         plan['dna'] = rotation_dna(plan['rotation'], soil, climate, req.history)
     if result['status'] == 'ok':
         result['stress_lab'] = stress_test(result['recommendations'], soil, climate, req.scenario, req.history)
-    return {'input': req.model_dump(), 'soil': soil.model_dump(), 'climate': climate.model_dump(), 'engine': result, 'disclaimer': 'Model heurystyczny; wyniki należy zweryfikować z agronomem i badaniami gleby.'}
+    return {'input': req.model_dump(), 'soil': soil.model_dump(), 'climate': climate.model_dump(), 'engine': result, 'disclaimer': 'Heuristic model; verify results with an agronomist and soil testing.'}
 
 @app.post('/api/v1/adapt', tags=['Recommendations'])
 async def adapt(request: AdaptRequest):
     if request.completed_crop not in CROPS:
-        raise HTTPException(status_code=422, detail='Nieznana uprawa zakończonego roku.')
+        raise HTTPException(status_code=422, detail='Unknown crop for the completed year.')
     history = [*request.history, request.completed_crop]
     if len(history) > 10:
         history = history[-10:]

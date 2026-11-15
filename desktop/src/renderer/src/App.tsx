@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronDown, MapPin, Pencil, RotateCcw, UserRound, X } from 'lucide-react';
 import FieldAnalysis from './FieldAnalysis';
-import TeamDashboard from './TeamDashboard';
-import LiveTeamStats from './LiveTeamStats';
 import './product-ui.css';
 import './profile.css';
 
-type View = 'live' | 'team';
 type UserProfile = {
   name: string;
   role: string;
@@ -18,7 +15,7 @@ type UserProfile = {
 
 const PROFILE_KEY = 'terrarotation.user-profile.v2';
 const DEFAULT_PROFILE: UserProfile = {
-  name: '', role: 'Rolnik / agronom', farm: '', email: '', region: '', avatarColor: '#245440',
+  name: '', role: 'Farmer / agronomist', farm: '', email: '', region: '', avatarColor: '#245440',
 };
 const AVATAR_COLORS = ['#245440', '#4477a8', '#8a5a35', '#71569b', '#a3545c'];
 
@@ -47,7 +44,6 @@ function initials(name: string): string {
 }
 
 export default function App() {
-  const [view, setView] = useState<View>('live');
   const [profile, setProfile] = useState<UserProfile>(loadProfile);
   const [draft, setDraft] = useState<UserProfile>(profile);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -76,42 +72,40 @@ export default function App() {
     window.setTimeout(() => setProfileOpen(false), 450);
   }
 
-  return <div className={view === 'team' ? 'app-layout app-layout-team' : 'app-layout'}>
-    <nav className="app-view-switch" aria-label="Widok aplikacji">
-      <button aria-pressed={view === 'live'} onClick={() => setView('live')}>Analiza LIVE i mapa</button>
-      <button aria-pressed={view === 'team'} onClick={() => setView('team')}>Panel zespołu</button>
+  return <div className="app-layout">
+    <nav className="app-view-switch" aria-label="Application view">
+      <button aria-pressed={true}>Live analysis and map</button>
       <button className="profile-toggle profile-toggle-enhanced" aria-expanded={profileOpen} onClick={openProfile}>
         <span className="profile-avatar" style={{ backgroundColor: profile.avatarColor }}>{initials(profile.name)}</span>
-        <span className="profile-toggle-copy"><strong>{profile.name || 'Ustaw profil'}</strong><small>{profile.farm || 'Profil lokalny'}</small></span>
+        <span className="profile-toggle-copy"><strong>{profile.name || 'Set up profile'}</strong><small>{profile.farm || 'Local profile'}</small></span>
         <ChevronDown size={15} />
       </button>
     </nav>
-    <div hidden={view !== 'live'}><FieldAnalysis visible={view === 'live'} /></div>
-    {view === 'team' && <section className="team-dashboard-view"><LiveTeamStats /><TeamDashboard /></section>}
+    <div><FieldAnalysis visible={true} /></div>
 
     {profileOpen && <div className="profile-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setProfileOpen(false); }}>
       <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title">
         <header className="profile-dialog-header">
           <div className="profile-dialog-identity">
             <span className="profile-avatar profile-avatar-xl" style={{ backgroundColor: draft.avatarColor }}>{initials(draft.name)}</span>
-            <div><span className="profile-eyebrow"><UserRound size={13} /> KONTO LOKALNE</span><h2 id="profile-title">Profil użytkownika</h2><p>Dane profilu są zapisane wyłącznie na tym urządzeniu.</p></div>
+            <div><span className="profile-eyebrow"><UserRound size={13} /> LOCAL ACCOUNT</span><h2 id="profile-title">User profile</h2><p>Profile data is stored only on this device.</p></div>
           </div>
-          <button className="profile-close" aria-label="Zamknij profil" onClick={() => setProfileOpen(false)}><X size={18} /></button>
+          <button className="profile-close" aria-label="Close profile" onClick={() => setProfileOpen(false)}><X size={18} /></button>
         </header>
-        <div className="profile-completion"><div><span>Uzupełnienie profilu</span><strong>{profileCompletion}%</strong></div><div className="profile-progress"><span style={{ width: `${profileCompletion}%` }} /></div></div>
+        <div className="profile-completion"><div><span>Profile completion</span><strong>{profileCompletion}%</strong></div><div className="profile-progress"><span style={{ width: `${profileCompletion}%` }} /></div></div>
         <form className="profile-form" onSubmit={saveProfile}>
           <div className="profile-form-grid">
-            <label>Imię i nazwisko<input autoFocus autoComplete="name" maxLength={60} placeholder="np. Julia Nowak" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
-            <label>Rola w gospodarstwie<input maxLength={80} placeholder="np. właścicielka, agronom" value={draft.role} onChange={(event) => setDraft({ ...draft, role: event.target.value })} /></label>
-            <label>Gospodarstwo<input maxLength={100} placeholder="Nazwa gospodarstwa" value={draft.farm} onChange={(event) => setDraft({ ...draft, farm: event.target.value })} /></label>
-            <label>E-mail kontaktowy <span className="profile-optional">opcjonalnie</span><input type="email" autoComplete="email" maxLength={120} placeholder="adres@gospodarstwo.pl" value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></label>
-            <label className="profile-region-label"><span className="profile-label-with-icon"><MapPin size={14} /> Region / lokalizacja</span><input maxLength={100} placeholder="np. Kujawy, Polska" value={draft.region} onChange={(event) => setDraft({ ...draft, region: event.target.value })} /></label>
+            <label>Full name<input autoFocus autoComplete="name" maxLength={60} placeholder="e.g. Julia Nowak" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
+            <label>Role on the farm<input maxLength={80} placeholder="e.g. owner, agronomist" value={draft.role} onChange={(event) => setDraft({ ...draft, role: event.target.value })} /></label>
+            <label>Farm<input maxLength={100} placeholder="Farm name" value={draft.farm} onChange={(event) => setDraft({ ...draft, farm: event.target.value })} /></label>
+            <label>Contact email <span className="profile-optional">optional</span><input type="email" autoComplete="email" maxLength={120} placeholder="name@farm.com" value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></label>
+            <label className="profile-region-label"><span className="profile-label-with-icon"><MapPin size={14} /> Region / location</span><input maxLength={100} placeholder="e.g. Kuyavia, Poland" value={draft.region} onChange={(event) => setDraft({ ...draft, region: event.target.value })} /></label>
           </div>
-          <fieldset className="avatar-colors"><legend>Kolor awatara</legend><div>{AVATAR_COLORS.map((color) => <button key={color} type="button" className={`avatar-color ${draft.avatarColor === color ? 'selected' : ''}`} style={{ backgroundColor: color }} aria-label={`Wybierz kolor ${color}`} aria-pressed={draft.avatarColor === color} onClick={() => setDraft({ ...draft, avatarColor: color })}>{draft.avatarColor === color && <Check size={15} />}</button>)}</div></fieldset>
+          <fieldset className="avatar-colors"><legend>Avatar color</legend><div>{AVATAR_COLORS.map((color) => <button key={color} type="button" className={`avatar-color ${draft.avatarColor === color ? 'selected' : ''}`} style={{ backgroundColor: color }} aria-label={`Choose color ${color}`} aria-pressed={draft.avatarColor === color} onClick={() => setDraft({ ...draft, avatarColor: color })}>{draft.avatarColor === color && <Check size={15} />}</button>)}</div></fieldset>
           <footer className="profile-dialog-actions">
-            <button type="button" className="profile-reset" onClick={() => setDraft(DEFAULT_PROFILE)}><RotateCcw size={14} /> Przywróć domyślne</button>
-            <button type="button" className="profile-cancel" onClick={() => setProfileOpen(false)}>Anuluj</button>
-            <button type="submit" className="profile-save"><Check size={15} /> {saved ? 'Zapisano' : 'Zapisz profil'}</button>
+            <button type="button" className="profile-reset" onClick={() => setDraft(DEFAULT_PROFILE)}><RotateCcw size={14} /> Restore defaults</button>
+            <button type="button" className="profile-cancel" onClick={() => setProfileOpen(false)}>Cancel</button>
+            <button type="submit" className="profile-save"><Check size={15} /> {saved ? 'Saved' : 'Save profile'}</button>
           </footer>
         </form>
       </section>

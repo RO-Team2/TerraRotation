@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
-import { readNasaCache, writeNasaCache } from './cacheStore';
-import { saveGeoJsonDialog, savePdfReportDialog } from './exportService';
+import { savePdfReportDialog } from './exportService';
 
 const API_BASE = (process.env.TERRAROTATION_API_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '');
 
@@ -15,7 +14,7 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { Accept: 'application/json', ...init?.headers },
     });
   } catch {
-    throw new Error(`Nie można połączyć się z API (${API_BASE}). Sprawdź, czy backend jest uruchomiony.`);
+    throw new Error(`Cannot connect to API (${API_BASE}). Check that the backend is running.`);
   }
 
   const body = (await response.json().catch(() => null)) as unknown;
@@ -24,7 +23,7 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
       typeof body === 'object' && body !== null && 'detail' in body
         ? JSON.stringify((body as { detail: unknown }).detail)
         : `HTTP ${response.status}`;
-    throw new Error(`API zwróciło błąd: ${detail}`);
+    throw new Error(`API returned an error: ${detail}`);
   }
   return body as T;
 }
@@ -66,28 +65,6 @@ ipcMain.handle('window:control', (_event, action: 'minimize' | 'maximize' | 'clo
   }
   if (action === 'close') mainWindow.close();
 });
-
-ipcMain.handle('nasa:sync-field', async (_event, fieldId: string) => {
-  try {
-    const liveData = await apiRequest<Record<string, unknown>>('/api/v1/health');
-    const cached = writeNasaCache(fieldId, liveData);
-    return { metrics: cached.payload, fromCache: false };
-  } catch {
-    const existing = readNasaCache(fieldId);
-    if (existing) {
-      return { metrics: existing.payload, fromCache: true };
-    }
-    const fallback = writeNasaCache(fieldId, {
-      source: 'NASA_POWER_SMAP_LOCAL_SNAPSHOT',
-      fieldId,
-    });
-    return { metrics: fallback.payload, fromCache: true };
-  }
-});
-
-ipcMain.handle('export:geojson', (_event, payload: unknown) =>
-  saveGeoJsonDialog(mainWindow, payload)
-);
 
 ipcMain.handle('export:pdf', (_event, view: unknown) => savePdfReportDialog(mainWindow, view));
 ipcMain.handle('api:health', () => apiRequest('/api/v1/health'));
