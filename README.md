@@ -1,5 +1,9 @@
 # TerraRotation Engine 1.0.0 — NASA Space Apps Hackathon MVP
 
+<p align="center">
+  <img src="TerraRotation_logo.svg" alt="TerraRotation Logo" width="300">
+</p>
+
 A FastAPI backend for recommending multi-year crop rotations based on field coordinates, historical NASA POWER data, and an estimated soil profile from ISRIC SoilGrids. **This is a hackathon demonstrator, not a validated agricultural advisory system.** The frontend is a separate team project.
 
 ## 1. What is included?
