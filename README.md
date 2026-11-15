@@ -47,25 +47,150 @@ pyproject.toml  # Dependencies and version 1.0.0
 README.md
 ```
 
-## 2. Requirements
+## 2. Requirements & Installation
 
-- Python **3.12+**, pip, and an internet connection for `live` mode.
-- GDAL with the Python `osgeo` module for reading SoilGrids rasters; on Fedora, the easiest option is to use the system Python and the `gdal` and `python3-gdal` packages.
-- `curl` and optionally `jq` for manual testing.
+### Prerequisites
 
-### Fedora installation
+TerraRotation consists of two components:
+
+- **Backend:** Python 3.12, FastAPI, GDAL and scientific libraries running inside Docker.
+- **Desktop application:** Electron, React and TypeScript running locally with Node.js.
+
+Required software:
+
+- Docker Engine
+- Docker Compose V2
+- Node.js and npm
+- Git
+- Internet access for live NASA and Copernicus data
+
+Python and GDAL do not need to be installed manually on the host system.
+
+### 1. Clone the repository
 
 ```bash
-sudo dnf install python3-gdal gdal python3-pip
-cd ~/Pulpit/nasa/terrarotation-mvp   # or the directory containing the extracted package
-python -m pip install -e .
-python -c 'from osgeo import gdal, osr; print("GDAL:", gdal.VersionInfo())'
-python -m uvicorn terrarotation.api:app --reload --host 127.0.0.1 --port 8000
+git clone https://github.com/RO-Team2/2026-hackathon-nasa.git
+cd 2026-hackathon-nasa
 ```
 
-If `from osgeo import gdal` fails, check that `python` points to the installation where `python3-gdal` is installed. Virtual environments often cannot access the system GDAL. Avoid blindly installing another GDAL version through pip: the bindings should match the system library.
+### 2. Configure environment variables
 
-**Available URLs:** `http://127.0.0.1:8000/docs` (Swagger), `http://127.0.0.1:8000/openapi.json` (specification), `http://127.0.0.1:8000/api/v1/health`.
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and configure the required API credentials:
+
+```dotenv
+COPERNICUS_CLIENT_ID=your-client-id
+COPERNICUS_CLIENT_SECRET=your-client-secret
+EARTHDATA_TOKEN=your-earthdata-token
+```
+
+Copernicus credentials are required for Sentinel-2 analysis.
+NASA Earthdata authentication is required for SMAP and ECOSTRESS.
+NASA POWER does not require an API key.
+
+Never commit `.env` or private credentials to the repository.
+
+### 3. Start the backend (Docker)
+
+Build and start the FastAPI backend:
+
+```bash
+docker compose up -d --build
+```
+
+Verify that the container is running:
+
+```bash
+docker compose ps
+```
+
+Backend API documentation:
+
+http://localhost:8000/docs
+
+API health endpoint:
+
+http://localhost:8000/api/v1/health
+
+### 4. Start the desktop application (Electron)
+
+Install desktop dependencies:
+
+```bash
+npm --prefix desktop install
+```
+
+Start the Electron application:
+
+```bash
+npm --prefix desktop run dev
+```
+
+Electron Vite starts the development server at:
+
+http://localhost:5173
+
+The Electron desktop window is launched automatically.
+
+**Important:** Keep the Electron development process running while using the application.
+
+### 5. Development workflow
+
+The backend and desktop application run independently.
+
+**Terminal 1 — Backend**
+
+```bash
+docker compose up -d --build
+```
+
+**Terminal 2 — Desktop**
+
+```bash
+npm --prefix desktop run dev
+```
+
+The desktop application communicates with the FastAPI backend.
+
+### 6. Stopping the application
+
+Stop Electron with `Ctrl+C` in its terminal.
+
+Stop the backend:
+
+```bash
+docker compose down
+```
+
+### 7. Troubleshooting
+
+Check backend container status:
+
+```bash
+docker compose ps
+```
+
+View backend logs:
+
+```bash
+docker compose logs -f
+```
+
+Rebuild the backend after code changes:
+
+```bash
+docker compose up -d --build
+```
+
+If the desktop application fails to start, verify that Node.js and npm are installed and that the dependencies in `desktop/` have been installed.
+
+If API requests fail, verify the backend health endpoint and the configured backend address.
+
+> **Note:** TerraRotation is a hackathon demonstration project. Satellite observations, crop rotation scores and soil estimates should not be treated as validated agricultural recommendations.
+
 
 ## 3. Frontend API
 
