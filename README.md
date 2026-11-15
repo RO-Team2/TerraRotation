@@ -1,60 +1,60 @@
 # TerraRotation Engine 1.0.0 — NASA Space Apps Hackathon MVP
 
-Backend FastAPI do rekomendowania wieloletniego płodozmianu na podstawie współrzędnych pola, danych historycznych NASA POWER i szacunkowego profilu gleby ISRIC SoilGrids. **To demonstrator hackathonowy, nie zweryfikowany system doradztwa rolniczego.** Frontend jest osobnym projektem zespołu.
+A FastAPI backend for recommending multi-year crop rotations based on field coordinates, historical NASA POWER data, and an estimated soil profile from ISRIC SoilGrids. **This is a hackathon demonstrator, not a validated agricultural advisory system.** The frontend is a separate team project.
 
-## 1. Co jest w paczce?
+## 1. What is included?
 
 ```text
 terrarotation/
-  api.py        # FastAPI, CORS i endpointy /api/v1
-  models.py     # Walidacja parametrów wejściowych (Pydantic)
+  api.py        # FastAPI, CORS, and /api/v1 endpoints
+  models.py     # Input validation (Pydantic)
   providers.py  # NASA POWER + ISRIC SoilGrids WCS
-  crops.py      # Katalog roślin
-  engine.py     # Ocena i generowanie płodozmianów
+  crops.py      # Crop catalog
+  engine.py     # Crop rotation scoring and generation
   __init__.py
 frontend-example/
-  api.js        # Gotowy klient JS do wklejenia do React/Vite
-.env.example    # Przykładowe zmienne dla backendu
-pyproject.toml  # Zależności i wersja 1.0.0
+  api.js        # Ready-to-use JS client for React/Vite
+.env.example    # Example backend environment variables
+pyproject.toml  # Dependencies and version 1.0.0
 README.md
 ```
 
-## 2. Wymagania
+## 2. Requirements
 
-- Python **3.12+**, pip, połączenie internetowe do pracy w `live`.
-- GDAL z modułem Python `osgeo` dla odczytu rasterów SoilGrids; na Fedorze najłatwiej korzystać z systemowego Pythona i pakietów `gdal`, `python3-gdal`.
-- `curl` i opcjonalnie `jq` do ręcznych testów.
+- Python **3.12+**, pip, and an internet connection for `live` mode.
+- GDAL with the Python `osgeo` module for reading SoilGrids rasters; on Fedora, the easiest option is to use the system Python and the `gdal` and `python3-gdal` packages.
+- `curl` and optionally `jq` for manual testing.
 
-### Fedora — instalacja
+### Fedora installation
 
 ```bash
 sudo dnf install python3-gdal gdal python3-pip
-cd ~/Pulpit/nasa/terrarotation-mvp   # lub katalog rozpakowanej paczki
+cd ~/Pulpit/nasa/terrarotation-mvp   # or the directory containing the extracted package
 python -m pip install -e .
 python -c 'from osgeo import gdal, osr; print("GDAL:", gdal.VersionInfo())'
 python -m uvicorn terrarotation.api:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Jeśli `from osgeo import gdal` nie działa, sprawdź, czy `python` wskazuje na tę samą instalację, w której zainstalowano `python3-gdal`. Wirtualne środowiska często nie widzą systemowego GDAL. Nie instaluj w ciemno innej wersji GDAL przez pip — bindingi powinny odpowiadać bibliotece systemowej.
+If `from osgeo import gdal` fails, check that `python` points to the installation where `python3-gdal` is installed. Virtual environments often cannot access the system GDAL. Avoid blindly installing another GDAL version through pip: the bindings should match the system library.
 
-**Działające adresy:** `http://127.0.0.1:8000/docs` (Swagger), `http://127.0.0.1:8000/openapi.json` (specyfikacja), `http://127.0.0.1:8000/api/v1/health`.
+**Available URLs:** `http://127.0.0.1:8000/docs` (Swagger), `http://127.0.0.1:8000/openapi.json` (specification), `http://127.0.0.1:8000/api/v1/health`.
 
-## 3. API dla frontendu
+## 3. Frontend API
 
-**Base URL:** `http://127.0.0.1:8000` (lokalnie); prefix: `/api/v1`.
+**Base URL:** `http://127.0.0.1:8000` (local); prefix: `/api/v1`.
 
-| Metoda | Ścieżka | Co zwraca |
+| Method | Path | Returns |
 |---|---|---|
-| GET | `/api/v1/health` | Status i wersja |
-| GET | `/api/v1/config` | Dozwolone scenariusze, wartości domyślne, limity |
-| GET | `/api/v1/crops` | Lista identyfikatorów i parametrów upraw |
-| POST | `/api/v1/recommend` | Dane gleby i klimatu + rekomendacje i symulacja roczna |
-| GET | `/docs` | Interaktywny Swagger UI |
-| GET | `/openapi.json` | Kontrakt OpenAPI do generowania typów |
+| GET | `/api/v1/health` | Status and version |
+| GET | `/api/v1/config` | Allowed scenarios, defaults, and limits |
+| GET | `/api/v1/crops` | Crop identifiers and parameters |
+| POST | `/api/v1/recommend` | Soil and climate data, recommendations, and yearly simulation |
+| GET | `/docs` | Interactive Swagger UI |
+| GET | `/openapi.json` | OpenAPI contract for generating types |
 
-Stare `/health`, `/crops`, `/recommend` również działają, ale **frontend powinien używać `/api/v1/*`**.
+The legacy `/health`, `/crops`, and `/recommend` endpoints still work, but **the frontend should use `/api/v1/*`**.
 
-### Minimalny request
+### Minimal request
 
 ```bash
 curl -sS http://127.0.0.1:8000/api/v1/recommend \
@@ -63,7 +63,7 @@ curl -sS http://127.0.0.1:8000/api/v1/recommend \
   | jq '{status:.engine.status, soil:.soil.layers, climate:.climate, best:.engine.recommendations[0]}'
 ```
 
-**`live`** pobiera dane ze źródeł zewnętrznych. **`demo`** korzysta z danych przykładowych i jest dobry do pracy nad UI bez czekania na sieć:
+**`live`** fetches data from external sources. **`demo`** uses sample data and is useful for UI development without waiting for network requests:
 
 ```bash
 curl -sS http://127.0.0.1:8000/api/v1/recommend \
@@ -71,27 +71,27 @@ curl -sS http://127.0.0.1:8000/api/v1/recommend \
   -d '{"latitude":52.28,"longitude":16.70,"years":4,"mode":"demo"}' | jq .
 ```
 
-### Parametry `POST /api/v1/recommend`
+### `POST /api/v1/recommend` parameters
 
-| Pole | Typ | Domyślnie | Znaczenie |
+| Field | Type | Default | Description |
 |---|---|---|---|
-| `latitude` | number, -90…90 | wymagane | Szerokość geograficzna |
-| `longitude` | number, -180…180 | wymagane | Długość geograficzna |
-| `years` | integer, 2…6 | `4` | Długość planu |
+| `latitude` | number, -90…90 | required | Latitude |
+| `longitude` | number, -180…180 | required | Longitude |
+| `years` | integer, 2…6 | `4` | Plan duration |
 | `scenario` | string | `balanced` | `balanced`, `soil`, `resilience`, `profit` |
-| `climate_years` | integer, 3…20 | `10` | Liczba pełnych lat historii klimatu |
-| `mode` | string | `live` | `live` lub `demo` |
-| `top_k` | integer, 1…20 | `5` | Maksymalna liczba rekomendacji |
-| `history` | string[] | `[]` | Historia upraw, identyfikatory z `/crops` |
-| `allowed_crops` | string[] lub null | `null` | Dozwolone uprawy; null = wszystkie |
-| `max_candidates` | integer, 100…500000 | `100000` | Limit przeszukania |
-| `ph_override` | number lub null, 0…14 | `null` | Ręczne pH zamiast wartości zagregowanej |
-| `sand_override` | number lub null, 0…100 | `null` | Ręczny udział piasku (%) |
-| `soc_override` | number lub null, >=0 | `null` | Ręczny SOC (g/kg) |
+| `climate_years` | integer, 3…20 | `10` | Number of complete years of climate history |
+| `mode` | string | `live` | `live` or `demo` |
+| `top_k` | integer, 1…20 | `5` | Maximum number of recommendations |
+| `history` | string[] | `[]` | Crop history using identifiers from `/crops` |
+| `allowed_crops` | string[] or null | `null` | Allowed crops; null = all |
+| `max_candidates` | integer, 100…500000 | `100000` | Search limit |
+| `ph_override` | number or null, 0…14 | `null` | Manual pH instead of the aggregated value |
+| `sand_override` | number or null, 0…100 | `null` | Manual sand content (%) |
+| `soc_override` | number or null, >=0 | `null` | Manual SOC (g/kg) |
 
-**Nie wpisuj nazw polskich w `history` ani `allowed_crops`:** API używa identyfikatorów, np. `pea`, `rye`, `rapeseed`, `potato`. Listę pobieraj z `/api/v1/crops`.
+**Do not use Polish crop names in `history` or `allowed_crops`:** the API uses identifiers such as `pea`, `rye`, `rapeseed`, and `potato`. Fetch the list from `/api/v1/crops`.
 
-### Struktura odpowiedzi
+### Response structure
 
 ```json
 {
@@ -115,56 +115,56 @@ curl -sS http://127.0.0.1:8000/api/v1/recommend \
 }
 ```
 
-Powyżej jest **skrócony przykład poglądowy**, a nie pełna odpowiedź: realne obiekty zawierają więcej pól. Frontend nie powinien polegać na przykładowych liczbach. Pełny aktualny schemat jest w `/openapi.json`.
+This is an **abbreviated illustrative example**, not a complete response: actual objects contain additional fields. The frontend should not rely on the example numbers. The complete current schema is available at `/openapi.json`.
 
-- `engine.status`: `ok`, `insufficient_data` albo `no_feasible_rotation`.
-- Przy `ok` czytaj `engine.recommendations` (tablica może być pusta w innych statusach).
-- `soil.layers`: profil 0–5, 5–15, 15–30 cm (o ile dostępny).
-- `year_by_year`: lista lat z `crop`, `previous_crop`, `pre_crop_bonus`, `fit`, `nitrogen_index`, `organic_matter_index`.
-- `soil.warnings`, `climate.warnings`, `engine.warnings`: wyświetlaj użytkownikowi.
-- `truncated: true` oznacza, że nie przeszukano wszystkich wariantów.
-- **HTTP 422**: błędne parametry (np. współrzędne poza zakresem, nieznane rośliny).
-- **HTTP 200 z `insufficient_data`**: brak wymaganych danych źródłowych, a nie sukces rekomendacji.
+- `engine.status`: `ok`, `insufficient_data`, or `no_feasible_rotation`.
+- For `ok`, read `engine.recommendations` (the array may be empty for other statuses).
+- `soil.layers`: a profile at depths of 0–5, 5–15, and 15–30 cm, where available.
+- `year_by_year`: yearly entries with `crop`, `previous_crop`, `pre_crop_bonus`, `fit`, `nitrogen_index`, and `organic_matter_index`.
+- `soil.warnings`, `climate.warnings`, `engine.warnings`: display these to the user.
+- `truncated: true` means that not all combinations were searched.
+- **HTTP 422**: invalid parameters, such as out-of-range coordinates or unknown crops.
+- **HTTP 200 with `insufficient_data`**: required source data is missing; this does not indicate a successful recommendation.
 
-## 4. Integracja z React / Vite
+## 4. React / Vite integration
 
-### Mapa pola i niezależna analiza Sentinel-2
+### Field map and independent Sentinel-2 analysis
 
-Aplikacja ma dwie niezależne warstwy:
+The application has two independent layers:
 
-- **Podkład wizualny Leaflet:** kafelki Esri World Imagery z etykietami, do
-  rozpoznawania terenu i wskazywania granic działki. Alternatywnie mapa OSM.
-  Dostawca i autorzy danych są wskazani na mapie. Szczegółowość i data zdjęć
-  zależą od lokalizacji i dostawcy; data analizy nie zmienia podkładu.
-- **Silnik analityczny FastAPI:** pobiera dane Copernicus Sentinel-2 L2A,
-  oblicza NDVI z B08/B04 na siatce UTM 10 m i zwraca wyniki liczbowe.
-  Nie generuje podkładu RGB ani kafelków mapy. Odpowiedź może opcjonalnie
-  zawierać raster NDVI do pobrania, który nie jest nakładany jako tło.
+- **Leaflet visual basemap:** Esri World Imagery tiles with labels for
+  identifying terrain and marking field boundaries. OSM is an alternative.
+  The provider and data contributors are credited on the map. Image detail
+  and acquisition dates depend on the location and provider; the analysis date does not change the basemap.
+- **FastAPI analysis engine:** fetches Copernicus Sentinel-2 L2A data,
+  calculates NDVI from B08/B04 on a 10 m UTM grid, and returns numerical results.
+  It does not generate an RGB basemap or map tiles. The response can optionally
+  include a downloadable NDVI raster, which is not used as a background layer.
 
-W zakładce **Mapa** wybierz „Punkt i otoczenie” albo „Obrysuj pole”.
-W trybie obrysu kliknij narożniki działki, wybierz „Zakończ obrys” i
-„Analizuj pole · Sentinel-2”. Przycisk „Cofnij punkt” usuwa ostatni wierzchołek.
-Obsługiwany jest pojedynczy poligon bez otworów, do 100 wierzchołków,
-bez przecinających się krawędzi, o rozpiętości do 5 km.
-Współrzędne GeoJSON są w kolejności `[longitude, latitude]`.
+In the **Map** tab, choose “Point and surroundings” or “Outline field”.
+In outline mode, click the field corners, then select “Finish outline” and
+“Analyze field · Sentinel-2”. The “Undo point” button removes the last vertex.
+A single polygon without holes is supported, with up to 100 vertices,
+no intersecting edges, and a span of up to 5 km.
+GeoJSON coordinates use the `[longitude, latitude]` order.
 
-**Konfiguracja backendu:** utwórz klienta OAuth Sentinel Hub w
+**Backend configuration:** create a Sentinel Hub OAuth client in the
 [Copernicus Dashboard](https://shapps.dataspace.copernicus.eu/dashboard/).
-[Instrukcja uwierzytelniania](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html).
-Klucze pozostają na backendzie, nie w zmiennych `VITE_*`.
+See the [authentication guide](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html).
+Keep credentials on the backend, not in `VITE_*` variables.
 
 ```bash
 python -m pip install -e .
-export COPERNICUS_CLIENT_ID='twoj-client-id'
-export COPERNICUS_CLIENT_SECRET='twoj-client-secret'
+export COPERNICUS_CLIENT_ID='your-client-id'
+export COPERNICUS_CLIENT_SECRET='your-client-secret'
 python -m uvicorn terraengine.api:app --host 127.0.0.1 --port 8000
 ```
 
-Dla Docker Compose uzupełnij `.env` według `.env.example` i uruchom
-`docker compose up --build`. Sam uvicorn nie wczytuje `.env` automatycznie.
+For Docker Compose, populate `.env` using `.env.example` and run
+`docker compose up --build`. Uvicorn does not load `.env` automatically.
 
-**API:** `POST /api/v1/satellite/field`, analiza punktu lub poligonu.
-Przykład poligonu:
+**API:** `POST /api/v1/satellite/field` analyzes a point or polygon.
+Polygon example:
 
 ```bash
 curl --fail http://127.0.0.1:8000/api/v1/satellite/field \
@@ -173,46 +173,46 @@ curl --fail http://127.0.0.1:8000/api/v1/satellite/field \
   --output field.json
 ```
 
-Dla punktu zastąp `geometry` polami `latitude`, `longitude`, `radius_m`
-(50–2500 m, wielokrotność 10). Nie podawaj jednocześnie punktu i poligonu.
-Analiza punktu obejmuje kwadrat o boku `2 * radius_m`.
+For a point, replace `geometry` with `latitude`, `longitude`, and `radius_m`
+(50–2500 m, in multiples of 10). Do not supply both a point and a polygon.
+Point analysis covers a square with sides of `2 * radius_m`.
 
-Odpowiedź: `stats` (średnia, mediana, minimum i maksimum NDVI, liczba ważnych
-pikseli, liczba wszystkich pikseli w obszarze i procent ważnych danych),
-`area_ha`, `geometry` (rzeczywisty analizowany obszar), `assessment`, `warnings`,
-`source`, `resolution_m`, `crs`, `start_date`, `end_date`.
-`geotiff` jest domyślnie null; ustaw `include_geotiff=true`, aby otrzymać
-analityczny GeoTIFF Float32 10 m z `nodata=-9999` jako data URL.
-Poza poligonem raster zawiera nodata. Nie ma już pól `image`, `rgb_image`,
-`rgb_geotiff` ani `bounds` podglądu.
+The response includes `stats` (mean, median, minimum and maximum NDVI, valid
+pixel count, total pixel count within the area, and percentage of valid data),
+`area_ha`, `geometry` (the actual area analyzed), `assessment`, `warnings`,
+`source`, `resolution_m`, `crs`, `start_date`, and `end_date`.
+`geotiff` is null by default; set `include_geotiff=true` to receive
+an analytical 10 m Float32 GeoTIFF with `nodata=-9999` as a data URL.
+The raster contains nodata outside the polygon. The `image`, `rgb_image`,
+`rgb_geotiff`, and preview `bounds` fields are no longer present.
 
-Granice pola są przekazywane do Process API i dodatkowo maskowane lokalnie.
-Statystyki obejmują piksele, których środki leżą wewnątrz poligonu.
-Powierzchnia `area_ha` pochodzi z geometrii w UTM, a nie z liczby pikseli.
-Mały poligon bez środka żadnego piksela 10 m zwraca 422.
+Field boundaries are sent to the Process API and also masked locally.
+Statistics cover pixels whose centers fall inside the polygon.
+The `area_ha` value comes from the geometry in UTM, not from the pixel count.
+A small polygon containing no 10 m pixel centers returns 422.
 
-Maska SCL ma rozdzielczość 20 m; zachowujemy klasy 4, 5, 6 (roślinność,
-gleba, woda). Chmury, cienie, śnieg i brak danych są wykluczane.
-Limit zachmurzenia dotyczy sceny, nie gwarantuje bezchmurnego pola.
-Mozaika `leastCC` może łączyć różne przeloty z zakresu do 31 dni.
-NDVI bez kontekstu uprawy, fazy rozwoju i porównania w czasie nie jest
-samodzielną diagnozą kondycji ani prognozą plonu; aplikacja wyświetla to ograniczenie.
-Silnik płodozmianu nadal korzysta osobno z NASA POWER i SoilGrids.
+The SCL mask has a resolution of 20 m; classes 4, 5, and 6 are retained
+(vegetation, soil, and water). Clouds, shadows, snow, and missing data are excluded.
+The cloud coverage limit applies to the scene and does not guarantee a cloud-free field.
+The `leastCC` mosaic may combine different passes within a period of up to 31 days.
+Without crop context, growth stage, and comparisons over time, NDVI alone is
+not a diagnosis of crop condition or a yield forecast; the application displays this limitation.
+The crop rotation engine continues to use NASA POWER and SoilGrids separately.
 
-Błędy: 404 brak ważnych pikseli, 422 błędne parametry/geometria, 429 limit,
-503 brak konfiguracji/uprawnień, 502/504 błąd lub timeout Copernicus.
+Errors: 404 for no valid pixels, 422 for invalid parameters/geometry, 429 for rate limits,
+503 for missing configuration/permissions, and 502/504 for Copernicus errors or timeouts.
 
-Dokumentacja: [Process API](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Process/Examples/S2L2A.html),
+Documentation: [Process API](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Process/Examples/S2L2A.html),
 [Esri World Imagery](https://doc.arcgis.com/en/data-appliance/2024/maps/world-imagery.htm).
-Testy: `python -m unittest discover -s tests -v`.
+Tests: `python -m unittest discover -s tests -v`.
 
-W repo frontendu dodaj `.env.local`:
+Add `.env.local` to the frontend repository:
 
 ```dotenv
 VITE_API_URL=http://127.0.0.1:8000
 ```
 
-Skopiuj `frontend-example/api.js` do `src/api.js`, a potem:
+Copy `frontend-example/api.js` to `src/api.js`, then:
 
 ```js
 import { getConfig, getCrops, recommendRotation } from './api';
@@ -227,122 +227,122 @@ if (result.engine.status === 'ok') {
 }
 ```
 
-Mapa daje `latitude` i `longitude`, formularz daje `years`, `scenario`, opcjonalnie `history`, a widok wyniku wyświetla `soil.layers`, `climate` i `engine.recommendations`. Wybór upraw w UI powinien używać `id` z katalogu.
+The map provides `latitude` and `longitude`, the form provides `years`, `scenario`, and optionally `history`, and the results view displays `soil.layers`, `climate`, and `engine.recommendations`. Crop selection in the UI should use the catalog's `id` values.
 
-### CORS i uruchamianie na dwóch komputerach
+### CORS and running on two computers
 
-Domyślnie akceptowane są originy `http://localhost` i `http://127.0.0.1` na portach `3000`, `5173`, `8080`. Inny frontend? Ustaw na backendzie:
+By default, origins `http://localhost` and `http://127.0.0.1` on ports `3000`, `5173`, and `8080` are accepted. For a different frontend origin, configure the backend:
 
 ```bash
 TERRAROTATION_CORS_ORIGINS='http://localhost:5173,http://192.168.1.20:5173' \
   python -m uvicorn terrarotation.api:app --host 0.0.0.0 --port 8000
 ```
 
-`192.168.1.20` jest **przykładem**, podmień na rzeczywisty adres maszyny frontendu. Frontend na innym komputerze **nie może** używać `127.0.0.1` jako adresu backendu — podaj adres IP lub domenę serwera backendowego. Port 8000 musi być dostępny w sieci; nie wystawiaj developmentowego serwera bez zabezpieczeń do publicznego Internetu.
+`192.168.1.20` is an **example**; replace it with the actual address of the frontend machine. A frontend on another computer **cannot** use `127.0.0.1` as the backend address: use the backend server's IP address or domain. Port 8000 must be accessible on the network; do not expose an unsecured development server to the public internet.
 
-## 5. Najczęstsze problemy
+## 5. Common issues
 
-- **`ModuleNotFoundError: osgeo`** — Python nie widzi bindingów GDAL; sprawdź `python -c 'from osgeo import gdal'`.
-- **`No module named uvicorn`** — uruchom `python -m pip install -e .` tym samym Pythonem.
-- **CORS blocked** — dodaj dokładny origin frontendu do `TERRAROTATION_CORS_ORIGINS` i uruchom backend ponownie.
-- **`Failed to fetch`** — sprawdź `/api/v1/health`, host, port, firewall i czy przeglądarka może połączyć się z backendem.
-- **`insufficient_data`** — sprawdź ostrzeżenia; źródła NASA POWER / SoilGrids mogą być niedostępne; do pokazu UI przełącz na `demo`.
-- **422** — sprawdź body w `/docs`, identyfikatory upraw i zakresy parametrów.
-- **Pierwsze wywołanie `live` trwa dłużej** — dane pobierane są z zewnętrznych usług; frontend powinien pokazać loading i umożliwić ponowienie.
+- **`ModuleNotFoundError: osgeo`** — Python cannot access the GDAL bindings; check `python -c 'from osgeo import gdal'`.
+- **`No module named uvicorn`** — run `python -m pip install -e .` using the same Python installation.
+- **CORS blocked** — add the exact frontend origin to `TERRAROTATION_CORS_ORIGINS` and restart the backend.
+- **`Failed to fetch`** — check `/api/v1/health`, the host, port, firewall, and whether the browser can connect to the backend.
+- **`insufficient_data`** — check the warnings; NASA POWER / SoilGrids sources may be unavailable; switch to `demo` for UI demonstrations.
+- **422** — check the request body in `/docs`, crop identifiers, and parameter ranges.
+- **The first `live` request takes longer** — data is fetched from external services; the frontend should show a loading state and allow retries.
 
-## 6. Co dokładnie jest modelem, a co danymi?
+## 6. What is modeled, and what comes from data?
 
-- **NASA POWER**: historyczne temperatury i opady; **to nie prognoza pogody**.
-- **SoilGrids**: przestrzenne estymacje pH, SOC i tekstury na trzech głębokościach; **to nie wyniki próbek laboratoryjnych**.
-- **Wynik upraw, wpływ przedplonu, rentowność, indeksy azotu i materii organicznej**: heurystyki demonstracyjne, **nie rzeczywiste kg N/ha, przewidywany plon ani zweryfikowane zmiany SOC**.
-- To MVP na hackathon: nie podejmuj na tej podstawie samodzielnie decyzji produkcyjnych.
+- **NASA POWER**: historical temperatures and precipitation; **not a weather forecast**.
+- **SoilGrids**: spatial estimates of pH, SOC, and texture at three depths; **not laboratory soil sample results**.
+- **Crop scores, preceding crop effects, profitability, nitrogen and organic matter indices**: demonstration heuristics, **not actual kg N/ha, predicted yields, or validated SOC changes**.
+- This is a hackathon MVP: do not use it as the sole basis for production decisions.
 
-## 7. Przekazanie zespołowi
+## 7. Team handoff
 
-Backendowiec uruchamia serwer i udostępnia adres API; frontendowiec bierze `frontend-example/api.js` oraz `/docs` i `/openapi.json`. Do pracy nad wyglądem można używać `mode: "demo"`; przed pokazem jury sprawdzić `mode: "live"` i komunikaty błędów.
+The backend developer starts the server and shares the API address; the frontend developer uses `frontend-example/api.js`, `/docs`, and `/openapi.json`. Use `mode: "demo"` for visual development; check `mode: "live"` and error messages before presenting to the judges.
 # 2026-hackathon-nasa
 # 2026-hackathon-nasa
 
-## Zintegrowana analiza w widoku Mapa
+## Integrated analysis in the Map view
 
-Mapa Esri ma osobny endpoint `POST /api/map/analyze`. Nie zmienia on
-`/api/v1/recommend`, `/api/v1/adapt` ani dostawców używanych przez Analizę pola.
-Przyjmuje ten sam punkt/obrys, zakres dat do 31 dni, zachmurzenie i opcję
-GeoTIFF co `/api/v1/satellite/field`. Kliknięcie punktu lub zakończenie obrysu
-uruchamia analizę automatycznie; przycisk umożliwia ponowienie.
+The Esri map has a separate endpoint, `POST /api/map/analyze`. It does not change
+`/api/v1/recommend`, `/api/v1/adapt`, or the providers used by Field Analysis.
+It accepts the same point/outline, a date range of up to 31 days, cloud coverage,
+and GeoTIFF option as `/api/v1/satellite/field`. Clicking a point or finishing
+an outline starts analysis automatically; the button allows retries.
 
-Źródła pobierane są niezależnie, równolegle:
+Sources are fetched independently, in parallel:
 
-- **NASA POWER Daily / AG**: temperatura średnia/min/max, opady, wilgotność
-  powietrza i wiatr dzienny (UTC). Raport pokazuje kompletność dni, sumę opadów,
-  upały, przymrozki i najdłuższy ciąg dni z opadem poniżej 1 mm. Braki przerywają
-  ciąg suchych dni; suma opadów nie jest ekstrapolowana.
-- **Sentinel-2**: istniejący serwis NDVI, wywoływany bez zmiany jego implementacji.
-- **NASA SMAP SPL3SMP v009**: powierzchniowe 0–5 cm, siatka 36 km. Pobierane są
-  maksymalnie 3 najnowsze granule okresu z NASA CMR / NSIDC. Wybierany jest
-  najbliższy piksel, a następnie sprawdzana jakość (flaga 0 lub 8); błędny piksel
-  nie jest zastępowany sąsiednim. Wynik to pojedyncza obserwacja, nie średnia
-  obrysu ani wilgotność strefy korzeniowej.
+- **NASA POWER Daily / AG**: daily mean/min/max temperature, precipitation,
+  air humidity, and wind (UTC). The report shows daily data completeness, total
+  precipitation, heat events, frosts, and the longest run of days with precipitation
+  below 1 mm. Missing data breaks dry spells; precipitation totals are not extrapolated.
+- **Sentinel-2**: the existing NDVI service, called without changing its implementation.
+- **NASA SMAP SPL3SMP v009**: surface soil moisture at 0–5 cm on a 36 km grid.
+  Up to 3 of the period's most recent granules are fetched from NASA CMR / NSIDC.
+  The nearest pixel is selected, then checked for quality (flag 0 or 8); an invalid
+  pixel is not replaced by a neighboring one. The result is a single observation,
+  not an average across the outline or root-zone soil moisture.
 
-Zainstaluj zależności `python -m pip install -e .` (nowa: `h5py`). POWER nie
-wymaga klucza. Sentinel-2 wymaga istniejących zmiennych Copernicus. SMAP wymaga
-**`EARTHDATA_TOKEN`** z [Earthdata Login](https://urs.earthdata.nasa.gov/),
-ważnego dla pobierania danych NSIDC i zgody na właściwą aplikację Earthdata.
-Token ustaw wyłącznie na backendzie. Compose przekazuje go z `.env`;
-uvicorn wymaga wyeksportowania go w terminalu. Brak tokenu nie blokuje POWER
-ani NDVI. Pobieranie SMAP ograniczono do 64 MB na plik. Dane punktowe są
-buforowane przez 15 minut w ograniczonym pamięciowo cache niezależnym od Analizy pola.
+Install dependencies with `python -m pip install -e .` (new dependency: `h5py`).
+POWER does not require a key. Sentinel-2 requires the existing Copernicus variables.
+SMAP requires an **`EARTHDATA_TOKEN`** from [Earthdata Login](https://urs.earthdata.nasa.gov/),
+valid for NSIDC downloads, and authorization for the appropriate Earthdata application.
+Set the token only on the backend. Compose passes it from `.env`;
+uvicorn requires exporting it in the terminal. A missing token does not block POWER
+or NDVI. SMAP downloads are limited to 64 MB per file. Point data is cached
+for 15 minutes in a memory-bounded cache independent of Field Analysis.
 
-Odpowiedź zawiera `power`, `sentinel`, `smap` (każde z `status`, `data`,
-`message`), `findings`, `warnings` i status całości `ok`, `partial` lub
-`unavailable`. Dla poligonu POWER i SMAP próbkują punkt wewnątrz obrysu;
-NDVI obejmuje cały obrys. Braki źródeł są jawne i nie uruchamiają danych demo.
+The response contains `power`, `sentinel`, and `smap` (each with `status`, `data`,
+and `message`), `findings`, `warnings`, and an overall status of `ok`, `partial`,
+or `unavailable`. For polygons, POWER and SMAP sample a point inside the outline;
+NDVI covers the entire outline. Missing sources are explicitly reported and do not trigger demo data.
 
-Interpretacja jest heurystyczna: m.in. łączy co najmniej 7 dni bez istotnego
-opadu z wilgotnością SMAP poniżej 0,15 m³/m³, uwzględnia NDVI, upały i epizody
-opadów ≥25 mm/dzień. Wnioskowanie pogodowe wymaga ≥80% kompletnych dni,
-wykorzystanie NDVI ≥70% ważnych pikseli, a SMAP daty do 7 dni względem końca
-okresu. Te progi są orientacyjne; raport nie wyznacza dawek nawożenia lub
-nawodnienia i nie utożsamia niskiego NDVI z niedoborem azotu.
+Interpretation is heuristic: among other factors, it combines at least 7 days
+without significant precipitation with SMAP moisture below 0.15 m³/m³, and accounts
+for NDVI, heat, and rainfall events of ≥25 mm/day. Weather inference requires
+≥80% complete days, NDVI use requires ≥70% valid pixels, and SMAP requires an
+observation within 7 days of the period's end. These thresholds are indicative;
+the report does not determine fertilizer or irrigation rates and does not equate low NDVI with nitrogen deficiency.
 
-Dokumentacja źródeł: [POWER Daily API](https://power.larc.nasa.gov/docs/services/api/temporal/daily/),
+Source documentation: [POWER Daily API](https://power.larc.nasa.gov/docs/services/api/temporal/daily/),
 [SMAP SPL3SMP v9](https://nsidc.org/data/spl3smp/versions/9),
 [CMR Search API](https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html).
 
 
-### Analiza mapy w tle
+### Background map analysis
 
-Interfejs mapy korzysta z `POST /api/map/jobs` (HTTP 202) i odczytuje
-`GET /api/map/jobs/{id}` co około sekundę. Wyniki każdego źródła są dostępne
-od razu po jego zakończeniu, bez oczekiwania na SMAP. `DELETE /api/map/jobs/{id}`
-anuluje pobieranie. Zmiana obszaru lub parametrów anuluje poprzednie zadanie;
-spóźnione odpowiedzi nie nadpisują wyników nowego pola. Interfejs pozostaje
-aktywny podczas analizy i pokazuje liczbę zakończonych źródeł.
+The map interface uses `POST /api/map/jobs` (HTTP 202) and polls
+`GET /api/map/jobs/{id}` approximately once per second. Each source's results
+are available as soon as it finishes, without waiting for SMAP. `DELETE /api/map/jobs/{id}`
+cancels data retrieval. Changing the area or parameters cancels the previous job;
+late responses do not overwrite results for the new field. The interface remains
+active during analysis and shows the number of completed sources.
 
-Status zadania: `running`, `completed`, `cancelled`, `failed`; status źródła:
-`pending`, `ok`, `unavailable`. Raport w trakcie pobierania ma status `running`;
-końcowa interpretacja jest uzupełniana po kolejnych wynikach. Dotychczasowy
-`POST /api/map/analyze` pozostaje dostępny dla klientów oczekujących pełnej odpowiedzi.
+Job statuses: `running`, `completed`, `cancelled`, `failed`; source statuses:
+`pending`, `ok`, `unavailable`. During retrieval, the report has a `running` status;
+the final interpretation is updated as further results arrive. The existing
+`POST /api/map/analyze` remains available for clients expecting a complete response.
 
-Zadania są przechowywane w pamięci **jednego procesu backendu**: maksymalnie
-4 aktywne i 32 przechowywane. Zakończone wyniki wygasają po 15 minutach;
-restart backendu je usuwa. Ta wersja wymaga pojedynczego procesu uvicorn
-(bez wielu workers); współdzielenie zadań między procesami wymaga osobnego magazynu/kolejki.
+Jobs are stored in the memory of **a single backend process**: up to 4 active
+and 32 stored jobs. Completed results expire after 15 minutes;
+restarting the backend removes them. This version requires a single uvicorn process
+(without multiple workers); sharing jobs across processes requires a separate store/queue.
 
 
-### Czwarty kafelek: NASA ECOSTRESS LST
+### Fourth tile: NASA ECOSTRESS LST
 
-Raport mapy zawiera także `ecostress` (`pending`, `ok` lub `unavailable`).
-Źródło działa niezależnie w tym samym zadaniu i korzysta z istniejącego
-`EARTHDATA_TOKEN` (dostęp LP DAAC). Produkt `ECO_L2T_LSTE.002` ma siatkę 70 m;
-raport pokazuje temperaturę powierzchni w °C, czas obserwacji UTC i flagę jakości.
-Jest to pojedynczy piksel dla punktu wewnątrz obrysu, nie średnia pola ani temperatura powietrza.
+The map report also includes `ecostress` (`pending`, `ok`, or `unavailable`).
+This source runs independently within the same job and uses the existing
+`EARTHDATA_TOKEN` (LP DAAC access). The `ECO_L2T_LSTE.002` product has a 70 m grid;
+the report shows surface temperature in °C, the UTC observation time, and a quality flag.
+This is a single pixel for a point inside the outline, not a field average or air temperature.
 
-Sprawdzane są maksymalnie 3 najnowsze sceny z okresu. Pobierane są LST, QC,
-maska chmur i maska wody, a odczyt odbywa się w osobnym wątku. Wartości
-NoData, zachmurzenie, woda i zła jakość są odrzucane. Łączny timeout źródła
-wynosi 60 sekund (z oczekiwaniem na cache), limit pliku 32 MB. Brak przelotu
-ISS, brak tokenu i błędy sieci powodują komunikat w tym kafelku, bez blokowania
-POWER, Sentinel-2 i SMAP. Stan raportu uwzględnia teraz cztery źródła (0/4–4/4).
+Up to 3 of the period's most recent scenes are checked. LST, QC, the cloud mask,
+and the water mask are downloaded, and reading takes place in a separate thread.
+NoData values, clouds, water, and poor-quality data are rejected. The total source
+timeout is 60 seconds (including cache waiting), with a 32 MB file limit. Missing
+ISS passes, missing tokens, and network errors produce a message in this tile
+without blocking POWER, Sentinel-2, or SMAP. The report now tracks four sources (0/4–4/4).
 
-Specyfikacja: [ECOSTRESS L2 User Guide v002](https://lpdaac.usgs.gov/documents/1574/ECOL2_User_Guide_V2.pdf).
+Specification: [ECOSTRESS L2 User Guide v002](https://lpdaac.usgs.gov/documents/1574/ECOL2_User_Guide_V2.pdf).

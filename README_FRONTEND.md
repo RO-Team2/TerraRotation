@@ -1,10 +1,10 @@
-# TerraRotation — integracja frontendu z TerraEngine
+# TerraRotation — frontend integration with TerraEngine
 
-Dokument dla zespołu Electron / React / TypeScript. Dotyczy wersji backendu z paczki `TerraEngine_Clean_Readable.zip` (14.11.2026).
+Documentation for the Electron / React / TypeScript team. Applies to the backend version from `TerraEngine_Clean_Readable.zip` (November 14, 2026).
 
-## 1. Uruchomienie backendu
+## 1. Starting the backend
 
-Z głównego katalogu repozytorium:
+From the repository root:
 
 ```bash
 python -m pip install -e .
@@ -14,21 +14,21 @@ python -m uvicorn terraengine.api:app --reload --port 8000
 API: `http://127.0.0.1:8000`  
 Swagger: `http://127.0.0.1:8000/docs`
 
-Domyślnie CORS dopuszcza m.in. localhost na portach 3000, 5173 i 8080. W aplikacji Electron korzystajcie z istniejącego `window.terraApi` (preload + IPC), a nie z bezpośredniego wywoływania `fetch` z widoku React, jeśli taki jest obecny wzorzec projektu.
+By default, CORS allows localhost on ports including 3000, 5173, and 8080. In the Electron application, use the existing `window.terraApi` (preload + IPC) rather than calling `fetch` directly from the React view if that is the project's established pattern.
 
-## 2. Endpointy
+## 2. Endpoints
 
-| Metoda | Endpoint | Cel |
+| Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/v1/health` | Status backendu |
-| GET | `/api/v1/config` | Scenariusze, tryby, wartości domyślne i limity |
-| GET | `/api/v1/crops` | Katalog upraw z identyfikatorami |
-| POST | `/api/v1/recommend` | Rekomendacje + DNA + testy klimatyczne + jakość danych |
-| POST | `/api/v1/adapt` | Ponowne planowanie po zakończeniu roku |
+| GET | `/api/v1/health` | Backend status |
+| GET | `/api/v1/config` | Scenarios, modes, defaults, and limits |
+| GET | `/api/v1/crops` | Crop catalog with identifiers |
+| POST | `/api/v1/recommend` | Recommendations + DNA + climate stress tests + data quality |
+| POST | `/api/v1/adapt` | Replanning after a completed year |
 
-Istnieją też aliasy `/health`, `/crops`, `/recommend` (poza schematem Swagger).
+The aliases `/health`, `/crops`, and `/recommend` also exist (excluded from the Swagger schema).
 
-## 3. Rekomendacja — request
+## 3. Recommendation request
 
 ```json
 {
@@ -44,15 +44,15 @@ Istnieją też aliasy `/health`, `/crops`, `/recommend` (poza schematem Swagger)
 }
 ```
 
-Wymagane są współrzędne. Pozostałe pola mają wartości domyślne. Dodatkowe opcjonalne pola: `max_candidates` (100–500000, domyślnie 100000), `ph_override` (0–14), `sand_override` (0–100), `soc_override` (>= 0). Współrzędne przesyłajcie jako liczby z kropką dziesiętną; przecinek stosujcie wyłącznie do wyświetlania w UI.
+Coordinates are required. All other fields have defaults. Additional optional fields: `max_candidates` (100–500000, default 100000), `ph_override` (0–14), `sand_override` (0–100), and `soc_override` (>= 0). Send coordinates as numbers with a decimal point; use a decimal comma only for display in the UI.
 
 - `scenario`: `balanced`, `soil`, `resilience`, `profit`.
-- `mode`: `live` (NASA POWER + ISRIC SoilGrids) albo `demo` (przykładowe dane).
+- `mode`: `live` (NASA POWER + ISRIC SoilGrids) or `demo` (sample data).
 - `years`: 2–6; `climate_years`: 3–20; `top_k`: 1–20.
-- `history`: lista identyfikatorów wcześniejszych upraw (maks. 10).
-- `allowed_crops`: `null` = wszystkie uprawy, lista ID = ograniczenie wyboru.
+- `history`: a list of previous crop identifiers (up to 10).
+- `allowed_crops`: `null` = all crops; a list of IDs restricts the selection.
 
-## 4. Struktura odpowiedzi `/api/v1/recommend`
+## 4. `/api/v1/recommend` response structure
 
 ```text
 {
@@ -68,14 +68,14 @@ Wymagane są współrzędne. Pozostałe pola mają wartości domyślne. Dodatkow
 }
 ```
 
-`engine.status` przyjmuje m.in. `ok`, `insufficient_data`, `no_feasible_rotation`. Gdy status nie jest `ok`, `recommendations` może być puste, a `stress_lab` nie występuje. Nie zakładajcie obecności `engine.stress_lab` bez sprawdzenia.
+`engine.status` values include `ok`, `insufficient_data`, and `no_feasible_rotation`. When the status is not `ok`, `recommendations` may be empty and `stress_lab` is absent. Check for `engine.stress_lab` before accessing it.
 
-Pojedynczy element `engine.recommendations[]`:
+A single `engine.recommendations[]` item:
 
 ```text
 {
   rotation: ["pea", "rapeseed", "potato", "rye"],
-  score: number,                  // skala 0–1
+  score: number,                  // 0–1 scale
   metrics: { fit, soil, resilience, profit, diversity },
   explanations: string[],
   year_by_year: [{ year, crop, previous_crop, pre_crop_bonus,
@@ -90,48 +90,48 @@ Pojedynczy element `engine.recommendations[]`:
 }
 ```
 
-`score` i metryki to wartości z zakresu około 0–1. Do wyświetlenia w punktach procentowych użyjcie `Math.round(score * 100)` albo dwóch miejsc po przecinku, jeśli trzeba rozróżnić bliskie wyniki. Nie interpretujcie tego jako prawdopodobieństwa sukcesu.
+`score` and the metrics have values roughly in the 0–1 range. To display a score on a 100-point scale, use `Math.round(score * 100)`, or two decimal places when needed to distinguish close results. Do not interpret it as a probability of success.
 
 ## 5. Climate Stress Lab
 
-Dostęp: `response.engine.stress_lab` (tylko gdy `status === "ok"`).
+Access: `response.engine.stress_lab` (only when `status === "ok"`).
 
-`scenarios[]` zawiera:
+`scenarios[]` contains:
 
-| `id` | Zmiana opadów | Zmiana temperatury |
+| `id` | Precipitation change | Temperature change |
 |---|---:|---:|
 | `baseline` | 0% | 0°C |
-| `drought` | −25% | +1,5°C |
+| `drought` | −25% | +1.5°C |
 | `wet` | +30% | 0°C |
 | `heat` | −10% | +3°C |
 
-Każdy scenariusz zawiera `plans[]`: `rotation`, `score`, `score_change`, `metrics`, `year_by_year`. `score_change` to różnica względem wyniku bazowego danej rotacji (również w skali 0–1).
+Each scenario contains `plans[]`: `rotation`, `score`, `score_change`, `metrics`, and `year_by_year`. `score_change` is the difference from that rotation's baseline score (also on a 0–1 scale).
 
-`robustness[]` zawiera dla każdej rozważanej rotacji: `rotation`, `worst_score`, `best_score`, `average_score`, `range`. Lista jest posortowana według najwyższego `worst_score` (strategia maximin). **Ważne:** testowane są tylko rotacje już zwrócone w `recommendations`, a nie wszystkie możliwe rotacje.
+For each rotation considered, `robustness[]` contains `rotation`, `worst_score`, `best_score`, `average_score`, and `range`. The list is sorted by the highest `worst_score` (a maximin strategy). **Important:** only rotations already returned in `recommendations` are tested, not all possible rotations.
 
-Proponowany UI: zakładki **Bazowy / Susza / Mokry rok / Upały**, porównanie punktacji i osobna sekcja „Odporność planu”. Podpis: „Scenariusze hipotetyczne, nie prognoza plonów”.
+Suggested UI: **Baseline / Drought / Wet year / Heat** tabs, score comparisons, and a separate “Plan robustness” section. Caption: “Hypothetical scenarios, not yield forecasts”.
 
 ## 6. Rotation DNA
 
-Dostęp: `response.engine.recommendations[i].dna`.
+Access: `response.engine.recommendations[i].dna`.
 
-- `dimensions` — pięć metryk do wykresu radarowego lub poziomych pasków.
-- `strongest`, `weakest` — **klucze metryk**, nie gotowe polskie etykiety.
-- `year_by_year` — roczny przebieg wskaźników i premii za przedplon.
+- `dimensions` — five metrics for a radar chart or horizontal bars.
+- `strongest`, `weakest` — **metric keys**, not ready-made Polish labels.
+- `year_by_year` — yearly progression of indices and preceding crop bonuses.
 
-Etykiety w UI: `fit` → Dopasowanie, `soil` → Gleba, `resilience` → Odporność, `profit` → Opłacalność, `diversity` → Różnorodność.
+UI labels: `fit` → Suitability, `soil` → Soil, `resilience` → Resilience, `profit` → Profitability, `diversity` → Diversity.
 
 ## 7. Confidence Engine
 
-Dostęp: `response.engine.confidence`.
+Access: `response.engine.confidence`.
 
-`checks` zawiera: `real_data` (boolean), `soil_coverage` (0–1), `climate_coverage` (0–1), `soil_layers` (liczba), `climate_years` (liczba). `limitations` to lista komunikatów po polsku. `validated_prediction` jest `false`.
+`checks` contains `real_data` (boolean), `soil_coverage` (0–1), `climate_coverage` (0–1), `soil_layers` (number), and `climate_years` (number). `limitations` is a list of messages in Polish. `validated_prediction` is `false`.
 
-To **ocena kompletności i pochodzenia danych**, nie procent pewności, że rekomendacja jest poprawna. Nie pokazujcie np. `soil_coverage: 0.8` jako „80% pewności”.
+This is an **assessment of data completeness and provenance**, not a confidence percentage that the recommendation is correct. For example, do not display `soil_coverage: 0.8` as “80% confidence”.
 
 ## 8. Adaptive Rotation
 
-`POST /api/v1/adapt` przyjmuje wszystkie pola z `FieldRequest` oraz:
+`POST /api/v1/adapt` accepts all `FieldRequest` fields plus:
 
 ```json
 {
@@ -147,9 +147,9 @@ To **ocena kompletności i pochodzenia danych**, nie procent pewności, że reko
 }
 ```
 
-`years` oznacza **liczbę lat pozostałych do zaplanowania**, nie długość pierwotnej rotacji; musi mieścić się w zakresie 2–6. Backend dopisuje `completed_crop` do historii i przelicza rekomendacje.
+`years` means **the number of remaining years to plan**, not the length of the original rotation; it must be within 2–6. The backend appends `completed_crop` to the history and recalculates recommendations.
 
-Odpowiedź ma strukturę taką jak `/recommend`, z dodatkowym polem:
+The response has the same structure as `/recommend`, with an additional field:
 
 ```text
 adaptation: {
@@ -160,13 +160,13 @@ adaptation: {
 }
 ```
 
-`changed` to proste porównanie tablic, a nie miara istotności zmiany. `previous_rotation` najlepiej przesyłać jako poprzednio planowaną **pozostałą część** rotacji, o tej samej długości co nowy plan.
+`changed` is a simple array comparison, not a measure of how significant the change is. Ideally, send `previous_rotation` as the previously planned **remaining portion** of the rotation, with the same length as the new plan.
 
-## 9. Integracja z Electronem
+## 9. Electron integration
 
-Obecny preload obsługuje `health`, `crops`, `recommend`. Dla adaptacji dodajcie nową metodę w trzech miejscach: IPC main process, preload (`window.terraApi.adapt`) i definicje TypeScript. Dla DNA, stress lab i confidence **nie potrzeba nowych endpointów** — przychodzą razem z odpowiedzią `/recommend`.
+The current preload supports `health`, `crops`, and `recommend`. For adaptation, add a new method in three places: main-process IPC, preload (`window.terraApi.adapt`), and TypeScript definitions. DNA, stress lab, and confidence **do not require new endpoints**: they are included in the `/recommend` response.
 
-Przykładowy typ do rozszerzenia istniejących typów:
+Example types for extending the existing definitions:
 
 ```ts
 type MetricKey = 'fit' | 'soil' | 'resilience' | 'profit' | 'diversity';
@@ -207,23 +207,23 @@ type StressLab = {
 };
 ```
 
-`YearEntry` należy zdefiniować według pól `year_by_year` opisanych wyżej. `stress_lab` w odpowiedzi oznaczcie jako opcjonalne.
+Define `YearEntry` using the `year_by_year` fields described above. Mark `stress_lab` as optional in the response type.
 
-## 10. Zasady i ograniczenia
+## 10. Guidelines and limitations
 
-- Identyfikatory w JSON zostają **po angielsku**; tłumaczymy wyłącznie tekst widoczny dla użytkownika.
-- Dla `live` źródła mogą nie odpowiedzieć; obsługujcie brak danych, ostrzeżenia i pusty ranking.
-- Błędy walidacji zwracają HTTP **422** (FastAPI); problemy z połączeniem wymagają osobnej obsługi.
-- `demo` nie oznacza rzeczywistych danych z lokalizacji użytkownika.
-- Wyniki są heurystyczne; nie są prognozą plonów, dochodu ani rzeczywistych zmian zawartości azotu w glebie.
-- Jeśli dwa wyniki są bardzo bliskie, pokazujcie dokładniejszą punktację zamiast sztucznie je rozdzielać.
+- JSON identifiers remain **in English**; translate only user-visible text.
+- In `live` mode, sources may not respond; handle missing data, warnings, and empty rankings.
+- Validation errors return HTTP **422** (FastAPI); connection problems require separate handling.
+- `demo` does not represent actual data from the user's location.
+- Results are heuristic; they are not forecasts of yields, income, or actual changes in soil nitrogen content.
+- If two results are very close, show more precise scores rather than artificially separating them.
 
-## 11. Kolejność prac frontendowych
+## 11. Frontend implementation order
 
-1. Rozszerzyć typy `RecommendResponse` o `dna`, `confidence` i opcjonalne `stress_lab`.
-2. Dodać Climate Stress Lab z przełącznikiem scenariuszy i tabelą odporności.
-3. Dodać Rotation DNA do karty rekomendacji.
-4. Dodać sekcję jakości danych i ostrzeżeń.
-5. Dodać `adapt` w IPC/preload oraz formularz aktualizacji po zakończeniu roku.
+1. Extend `RecommendResponse` types with `dna`, `confidence`, and optional `stress_lab`.
+2. Add Climate Stress Lab with a scenario selector and a robustness table.
+3. Add Rotation DNA to the recommendation card.
+4. Add a data quality and warnings section.
+5. Add `adapt` to IPC/preload and a form for updates after a completed year.
 
-Do szybkiej demonstracji wybierzcie `mode: "demo"`. Przed pokazem LIVE sprawdźcie dostępność NASA POWER, SoilGrids oraz zależności GDAL na maszynie demonstracyjnej.
+For a quick demonstration, select `mode: "demo"`. Before a LIVE presentation, check NASA POWER and SoilGrids availability and the GDAL dependencies on the demonstration machine.
