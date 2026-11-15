@@ -1,8 +1,32 @@
 # TerraRotation Engine 1.0.0 — NASA Space Apps Hackathon MVP
 
-<p align="center">
-  <img src="TerraRotation_logo.svg" alt="TerraRotation Logo" width="300">
-</p>
+<div align="center">
+
+  <img src="TerraRotation_logo.svg" alt="TerraRotation Logo" width="240">
+
+  <h3>Smart Crop Rotation & Satellite Field Analysis</h3>
+
+  <p>
+    Crop rotation planning powered by NASA Earth observation data.
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
+    <img src="https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
+    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+    <img src="https://img.shields.io/badge/NASA-POWER-0B3D91?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA POWER">
+    <img src="https://img.shields.io/badge/Sentinel--2-1976D2?style=for-the-badge&logoColor=white" alt="Sentinel-2">
+    <img src="https://img.shields.io/badge/NASA-SMAP-0B3D91?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA SMAP">
+    <img src="https://img.shields.io/badge/NASA-ECOSTRESS-0B3D91?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA ECOSTRESS">
+  </p>
+
+</div>
 
 A FastAPI backend for recommending multi-year crop rotations based on field coordinates, historical NASA POWER data, and an estimated soil profile from ISRIC SoilGrids. **This is a hackathon demonstrator, not a validated agricultural advisory system.** The frontend is a separate team project.
 
